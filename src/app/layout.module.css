@@ -4,8 +4,6 @@
     min-height: 100vh;
 }
 
-}
-
 .main {
     flex: 1;
     padding: var(--spacing-md);
@@ -19,7 +17,6 @@
         padding: var(--spacing-lg);
     }
 }
-
 
 .footer {
     text-align: center;
