@@ -1,5 +1,8 @@
 
+
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import styles from './dashboard.module.css'
 import QuickRecordForm from './QuickRecordForm'
