@@ -1,0 +1,131 @@
+.header {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    z-index: 1001;
+}
+
+.logo a {
+    text-decoration: none;
+    color: inherit;
+    white-space: nowrap;
+}
+
+.nav {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.navLink {
+    color: var(--color-surface);
+    text-decoration: none;
+    font-weight: 500;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    transition: background-color 0.2s;
+}
+
+.navLink:hover {
+    background-color: var(--color-primary-light);
+}
+
+/* Hamburger Styles */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 2rem;
+    height: 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+}
+
+.hamburger span {
+    width: 2rem;
+    height: 0.25rem;
+    background: var(--color-surface);
+    border-radius: 10px;
+    transition: all 0.3s linear;
+    position: relative;
+    transform-origin: 1px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .logo {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 860px) {
+    .hamburger {
+        display: flex;
+    }
+
+    .nav {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: 70%;
+        max-width: 300px;
+        background-color: var(--color-primary);
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 5rem 2rem 2rem 2rem;
+        transition: transform 0.3s ease-in-out;
+        transform: translateX(100%);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .navOpen {
+        transform: translateX(0);
+    }
+
+    .navLink {
+        font-size: 1.25rem;
+        padding: var(--spacing-md) 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0;
+        width: 100%;
+    }
+
+    .open span:first-child {
+        transform: rotate(45deg);
+    }
+
+    .open span:nth-child(2) {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    .open span:nth-child(3) {
+        transform: rotate(-45deg);
+    }
+
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+}

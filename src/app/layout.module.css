@@ -4,52 +4,22 @@
     min-height: 100vh;
 }
 
-.header {
-    background-color: var(--color-primary);
-    color: var(--color-surface);
-    padding: var(--spacing-md) var(--spacing-lg);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: var(--shadow-md);
-}
-
-.logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-}
-
-.logo a {
-    text-decoration: none;
-    color: inherit;
-}
-
-.nav {
-    display: flex;
-    gap: var(--spacing-md);
-}
-
-.navLink {
-    color: var(--color-surface);
-    text-decoration: none;
-    font-weight: 500;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    transition: background-color 0.2s;
-}
-
-.navLink:hover {
-    background-color: var(--color-primary-light);
 }
 
 .main {
     flex: 1;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
 }
+
+@media (min-width: 768px) {
+    .main {
+        padding: var(--spacing-lg);
+    }
+}
+
 
 .footer {
     text-align: center;
