@@ -1,0 +1,205 @@
+.container {
+    padding: var(--spacing-lg);
+    background: #fdfdfd;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.titleGroup h1 {
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.backLink {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+}
+
+.controls {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.navGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 0 10px;
+}
+
+.navGroup span {
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+}
+
+.navGroup button {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.viewToggle {
+    display: flex;
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.viewToggle button {
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.viewToggle button.active {
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+}
+
+.chartWrapper {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow-x: auto;
+    position: relative;
+}
+
+.chartHeader {
+    display: flex;
+    border-bottom: 2px solid #eee;
+    background: #fafafa;
+}
+
+.ghColumnHeader {
+    width: 200px;
+    min-width: 200px;
+    padding: 10px;
+    font-weight: 700;
+    border-right: 1px solid #eee;
+    position: sticky;
+    left: 0;
+    background: #fafafa;
+    z-index: 10;
+}
+
+.timelineHeader {
+    display: flex;
+}
+
+.dayCell {
+    border-right: 1px solid #efefef;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.dayLabel {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.wdLabel {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+.chartBody {
+    position: relative;
+}
+
+.row {
+    display: flex;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ghColumn {
+    width: 200px;
+    min-width: 200px;
+    padding: 10px;
+    border-right: 1px solid #eee;
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 10;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ghColumn:hover {
+    background: #f0fdf4;
+}
+
+.ghName {
+    font-weight: 600;
+    color: #333;
+}
+
+.ghArea {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.timelineRow {
+    position: relative;
+    display: flex;
+}
+
+.gridCell {
+    border-right: 1px solid #f9f9f9;
+    height: 60px;
+}
+
+.bar {
+    position: absolute;
+    top: 10px;
+    height: 40px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    z-index: 5;
+}
+
+.bar:hover {
+    transform: scaleY(1.05);
+    opacity: 0.9;
+}
+
+.barText {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.hint {
+    margin-top: var(--spacing-lg);
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+}

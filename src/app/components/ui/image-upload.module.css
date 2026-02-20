@@ -1,0 +1,33 @@
+.uploadContainer {
+    margin-bottom: var(--spacing-sm);
+}
+
+.uploadButton {
+    background-color: var(--color-background);
+    border: 2px dashed var(--color-border);
+    color: var(--color-text-main);
+    padding: 12px;
+    border-radius: var(--border-radius-sm);
+    width: 100%;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.uploadButton:hover {
+    background-color: var(--color-border);
+    border-color: var(--color-primary);
+}
+
+.uploadButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.hiddenInput {
+    display: none;
+}

@@ -1,0 +1,285 @@
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.pageTitle {
+    font-size: 2rem;
+    margin-bottom: 4px;
+    color: var(--color-primary);
+}
+
+.dateDisplay {
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-lg);
+    font-weight: 500;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.sectionTitle {
+    font-size: 1.5rem;
+}
+
+.cardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.workCard {
+    background: var(--color-surface);
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.completedCard {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    opacity: 0.85;
+}
+
+.completedCard .workName {
+    color: var(--color-text-muted);
+}
+
+.workTitleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.completedBadge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.cardDanger {
+    border-left: 5px solid var(--color-danger);
+    background-color: #fff5f5;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cardHeader h3 {
+    margin: 0;
+    color: var(--color-primary);
+}
+
+.stageTag {
+    background-color: var(--color-accent-light);
+    color: var(--color-text-main);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.purpose {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.metrics {
+    display: flex;
+    gap: var(--spacing-md);
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-top: auto;
+}
+
+.actions {
+    margin-top: var(--spacing-md);
+}
+
+.button,
+.buttonOutline {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.button {
+    background-color: var(--color-primary);
+    color: white;
+    border: 1px solid var(--color-primary);
+}
+
+.button:hover {
+    background-color: var(--color-primary-light);
+}
+
+.buttonOutline {
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    width: 100%;
+}
+
+.buttonOutline:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.manualTarget {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px;
+    background: #fff9e6;
+    border: 1px solid #fef3c7;
+    border-radius: 8px;
+    margin: 4px 0;
+}
+
+.targetIcon {
+    font-size: 1.1rem;
+}
+
+.manualTarget .targetLabel {
+    font-weight: 700;
+    color: #92400e;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.targetText {
+    color: #92400e;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.targetComparison {
+    display: flex;
+    gap: 16px;
+    margin-top: 4px;
+    padding: 0 4px;
+}
+
+.targetBox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.subText {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.actualTotal {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.actualTotal[data-complete="true"] {
+    color: var(--color-success, #28a745);
+}
+
+.targetsList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0;
+}
+
+.targetBadge {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+}
+
+.targetGH {
+    font-weight: 600;
+    color: #444;
+    margin-right: 4px;
+}
+
+.targetTimeValue {
+    color: #64748b;
+}
+
+.cardFooter {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.standardTime {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-align: right;
+}
+
+.quickLinks {
+    margin-top: var(--spacing-xl);
+    text-align: center;
+}
+
+.bigButton {
+    display: inline-block;
+    background-color: var(--color-accent);
+    color: white;
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--border-radius-md);
+    font-size: 1.2rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+}
+
+.bigButton:hover {
+    background-color: #c09d30;
+    box-shadow: var(--shadow-lg);
+}

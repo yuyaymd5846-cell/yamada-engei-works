@@ -1,0 +1,110 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-md);
+}
+
+.header {
+    margin-bottom: var(--spacing-xl);
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.header p {
+    color: var(--color-text-muted);
+}
+
+.formSection {
+    background: #fff;
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.form {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-end;
+}
+
+@media (max-width: 600px) {
+    .form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.field {
+    flex: 1;
+}
+
+.field label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.field input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    font-size: 1rem;
+}
+
+.submitBtn {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.submitBtn:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.submitBtn:disabled {
+    opacity: 0.7;
+}
+
+.listSection h2 {
+    margin-bottom: var(--spacing-md);
+    font-size: 1.4rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.card {
+    background: white;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    border-left: 4px solid var(--color-primary);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ghName {
+    font-weight: 700;
+}
+
+.ghArea {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}

@@ -1,0 +1,177 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    width: 600px;
+    max-height: 90vh;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid #efefef;
+    background: #fafafa;
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #333;
+}
+
+.headerActions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.copyBtn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.deleteBtn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.body {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+}
+
+.section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.section h3 {
+    font-size: 0.95rem;
+    color: #444;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 700;
+}
+
+.varietyRow {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.varietyRow input[type="text"] {
+    flex: 3;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.varietyRow input[type="number"] {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.removeBtn {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    width: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.addBtn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.memoInput {
+    width: 100%;
+    height: 80px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: none;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.field label {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.field input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid #efefef;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+}
+
+.cancelBtn {
+    background: #9ca3af;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.saveBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+}

@@ -1,0 +1,319 @@
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.backLink {
+    display: inline-block;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.header {
+    margin-bottom: var(--spacing-xl);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.headerMain {
+    display: flex;
+    flex-direction: column;
+}
+
+.editButton {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.editButton:hover {
+    background-color: var(--color-border);
+    color: var(--color-text-main);
+}
+
+.mediaFrame {
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    background-color: #000;
+}
+
+.workImage {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.stageTag {
+    background-color: var(--color-accent-light);
+    color: var(--color-text-main);
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.title {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: var(--spacing-xl);
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mainContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.section h2 {
+    border-left: 4px solid var(--color-accent);
+    padding-left: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.text {
+    line-height: 1.8;
+    color: var(--color-text-main);
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.impactCard {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+}
+
+.impactCard h3 {
+    font-size: 1rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-muted);
+}
+
+.riskText {
+    color: var(--color-danger);
+    font-weight: 600;
+}
+
+.profitText {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.metricsCard {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* AI Component Styles */
+.aiButton {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    width: 100%;
+    transition: transform 0.2s;
+}
+
+.aiButton:hover {
+    transform: scale(1.02);
+}
+
+.aiContainer {
+    background-color: #f0f7ff;
+    border: 1px solid #cce3ff;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    margin-top: var(--spacing-sm);
+}
+
+.aiForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.formRow {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.formRow label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.formRow input {
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    margin-top: 4px;
+}
+
+.formActions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.submitButton {
+    flex: 1;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+}
+
+.cancelButton {
+    background-color: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    padding: 10px;
+    border-radius: var(--border-radius-sm);
+}
+
+.aiResult {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid #cce3ff;
+    background-color: white;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+}
+
+.markdownContent {
+    line-height: 1.8;
+    color: var(--color-text-main);
+}
+
+.markdownContent h3 {
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.markdownContent hr {
+    border: none;
+    border-top: 1px dashed var(--color-border);
+    margin: var(--spacing-lg) 0;
+}
+
+.markdownContent img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-sm);
+    margin: var(--spacing-md) 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.markdownContent ul,
+.markdownContent ol {
+    margin-left: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    padding-left: 0;
+}
+
+.markdownContent li {
+    margin-bottom: 8px;
+}
+
+.markdownContent input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+.markdownContent p {
+    margin-bottom: var(--spacing-md);
+}
+
+.markdownContent table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--spacing-lg) 0;
+    font-size: 0.95rem;
+    background-color: white;
+}
+
+.markdownContent th,
+.markdownContent td {
+    padding: 12px 15px;
+    border: 1px solid var(--color-border);
+    text-align: left;
+}
+
+.markdownContent th {
+    background-color: #f8f9fa;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.markdownContent tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.markdownContent blockquote {
+    border-left: 4px solid var(--color-accent);
+    background-color: #fcfcfc;
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+.aiResult h4 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}

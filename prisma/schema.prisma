@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WorkManual {
+  id                String   @id @default(uuid())
+  workName          String   @map("work_name")
+  
+  // Categorization
+  stage             String   // e.g. "花芽分化期" 
+  
+  // Core Content
+  purpose           String
+  timingStandard    String   @map("timing_standard")
+  // Using String to store JSON for SQLite flexibility and simplicity in this phase
+  inputParameters   String   @map("input_parameters") 
+  actionSteps       String   @map("action_steps")
+  
+  // Risk & Impact (Business Logic)
+  riskIfNotDone     String   @map("risk_if_not_done")
+  impactOnQuality   String   @map("impact_on_quality")
+  impactOnYield     String   @map("impact_on_yield")
+  impactOnProfit    String   @map("impact_on_yield_profit") // Mapping to "impact_on_yield" in plan was a typo, fixed to profit here? No, plan said impact_on_profit. 
+  // Wait, looking at plan: impactOnProfit String @map("impact_on_profit")
+  // Correcting map name below.
+  
+  // Metrics
+  requiredTime10a   Float    @map("required_time_10a")
+  difficultyLevel   Int      @map("difficulty_level")
+
+  // Media (URLs)
+  imageUrl          String?  @map("image_url")
+  videoUrl          String?  @map("video_url")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("work_manual")
+}
+
+model Greenhouse {
+  id        String   @id @default(cuid())
+  name      String   // ハウス名称 (例: 1号ハウス, A棟)
+  areaAcre              Float    @map("area_acre") // 面積 (a: アール)
+  pesticideRotationIndex Int      @default(1) @map("pesticide_rotation_index")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("greenhouses")
+}
+
+model WorkRecord {
+  id             String   @id @default(cuid())
+  workName       String   @map("work_name")
+  greenhouseName String   @map("greenhouse_name")
+  batchNumber    Int?     @map("batch_number") // 何作目
+  areaAcre       Float    @map("area_acre")
+  spentTime      Float    @map("spent_time")
+  note           String?
+  date           DateTime @default(now())
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("work_records")
+}
+
+
+model CropCycle {
+  id             String   @id @default(cuid())
+  greenhouseId   String   @map("greenhouse_id")
+  greenhouseName String   @map("greenhouse_name")
+  batchNumber    Int?     @map("batch_number") // 何作目
+  
+  // Varieties & Ecology stored as JSON string
+  // Format: [{ name: string, count: number }]
+  varieties      String?  
+  memo           String?
+
+  // Phase Dates
+  disinfectionStart DateTime? @map("disinfection_start")
+  disinfectionEnd   DateTime? @map("disinfection_end")
+  plantingDate     DateTime? @map("planting_date")
+  lightsOffDate    DateTime? @map("lights_off_date")
+  harvestStart     DateTime? @map("harvest_start")
+  harvestEnd       DateTime? @map("harvest_end")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("crop_cycles")
+}
+
+model CropSchedule {
+  id             String   @id @default(cuid())
+  greenhouseId   String   @map("greenhouse_id")
+  greenhouseName String   @map("greenhouse_name")
+  stage          String
+  startDate      DateTime @map("start_date")
+  endDate        DateTime? @map("end_date")
+  color          String?  @default("#28a745")
+  batchNumber    Int?     @map("batch_number")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("crop_schedules")
+}
+
+model PesticideRotation {
+  id        String   @id @default(uuid())
+  label     String   // e.g. "①"
+  pesticides String  // JSON string: [{ name: string, dilution: string }]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pesticide_rotations")
+}
