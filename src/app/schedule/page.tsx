@@ -206,12 +206,8 @@ export default function SchedulePage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <div className={styles.titleGroup}>
-                    <h1>温室ガントチャート</h1>
-                    <Link href="/dashboard" className={styles.backLink}>← ダッシュボードへ</Link>
-                </div>
-
                 <div className={styles.controls}>
+
                     <button onClick={() => {
                         const d = new Date()
                         d.setHours(0, 0, 0, 0)
