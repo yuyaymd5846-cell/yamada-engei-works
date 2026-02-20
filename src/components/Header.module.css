@@ -92,6 +92,8 @@
         transition: transform 0.3s ease-in-out;
         transform: translateX(100%);
         box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        /* Ensure nav is above overlay */
     }
 
     .navOpen {
@@ -104,6 +106,8 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 0;
         width: 100%;
+        display: block;
+        /* Make sure the whole area is clickable */
     }
 
     .open span:first-child {
@@ -127,5 +131,6 @@
         height: 100vh;
         background: rgba(0, 0, 0, 0.5);
         z-index: 999;
+        /* Overlay stays below nav */
     }
 }
