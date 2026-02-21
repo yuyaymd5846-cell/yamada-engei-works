@@ -454,6 +454,24 @@
     border: 1px solid #e2e8f0;
 }
 
+.mobileCardEditing {
+    border-color: var(--color-primary);
+    background: #f8f5ff;
+}
+
+.mobileEditGrid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 8px;
+    align-items: center;
+}
+
+.mobileEditGrid label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
 /* Lightbox */
 .lightbox {
     position: fixed;

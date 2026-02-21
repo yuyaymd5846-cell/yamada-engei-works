@@ -559,34 +559,78 @@ export default function WorkRecordsPage() {
 
             {/* Mobile card view */}
             <div className={styles.mobileCards}>
-                {sortedRecords.map(record => (
-                    <div key={record.id} className={styles.mobileCard}>
-                        <div className={styles.mobileCardHead}>
-                            <span className={styles.mobileDate}>
-                                {new Date(record.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                            </span>
-                            <span className={styles.mobileWork}>{record.workName}</span>
-                            <span className={styles.mobileTime}>{record.spentTime}h</span>
+                {sortedRecords.map(record => {
+                    const isEditing = editingId === record.id
+                    return (
+                        <div key={record.id} className={`${styles.mobileCard} ${isEditing ? styles.mobileCardEditing : ''}`}>
+                            {isEditing ? (
+                                <>
+                                    <div className={styles.mobileEditGrid}>
+                                        <label>日付</label>
+                                        <input
+                                            type="date"
+                                            value={editValues.date}
+                                            onChange={e => setEditValues({ ...editValues, date: e.target.value })}
+                                            className={styles.inlineInput}
+                                        />
+                                        <label>作目</label>
+                                        <input
+                                            type="number"
+                                            value={editValues.batchNumber}
+                                            onChange={e => setEditValues({ ...editValues, batchNumber: Number(e.target.value) })}
+                                            className={styles.inlineInput}
+                                        />
+                                        <label>時間</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editValues.spentTime}
+                                            onChange={e => setEditValues({ ...editValues, spentTime: Number(e.target.value) })}
+                                            className={styles.inlineInput}
+                                        />
+                                        <label>備考</label>
+                                        <textarea
+                                            value={editValues.note}
+                                            onChange={e => setEditValues({ ...editValues, note: e.target.value })}
+                                            className={styles.inlineTextarea}
+                                        />
+                                    </div>
+                                    <div className={styles.mobileCardActions}>
+                                        <button onClick={() => setEditingId(null)} className={styles.deleteBtn}>キャンセル</button>
+                                        <button onClick={() => handleSave(record.id)} className={styles.saveInlineBtn}>保存</button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className={styles.mobileCardHead}>
+                                        <span className={styles.mobileDate}>
+                                            {new Date(record.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+                                        </span>
+                                        <span className={styles.mobileWork}>{record.workName}</span>
+                                        <span className={styles.mobileTime}>{record.spentTime}h</span>
+                                    </div>
+                                    <div className={styles.mobileCardBody}>
+                                        <span>{record.greenhouseName}</span>
+                                        {record.batchNumber && <span>第{record.batchNumber}作</span>}
+                                        {record.note && <span className={styles.mobileNote}>{record.note}</span>}
+                                    </div>
+                                    {record.photoUrl && (
+                                        <img
+                                            src={record.photoUrl}
+                                            alt="写真"
+                                            className={styles.mobilePhoto}
+                                            onClick={() => setLightboxUrl(record.photoUrl)}
+                                        />
+                                    )}
+                                    <div className={styles.mobileCardActions}>
+                                        <button onClick={() => handleEdit(record)} className={styles.editBtn}>編集</button>
+                                        <button onClick={() => deleteRecord(record.id)} className={styles.deleteBtn}>削除</button>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                        <div className={styles.mobileCardBody}>
-                            <span>{record.greenhouseName}</span>
-                            {record.batchNumber && <span>第{record.batchNumber}作</span>}
-                            {record.note && <span className={styles.mobileNote}>{record.note}</span>}
-                        </div>
-                        {record.photoUrl && (
-                            <img
-                                src={record.photoUrl}
-                                alt="写真"
-                                className={styles.mobilePhoto}
-                                onClick={() => setLightboxUrl(record.photoUrl)}
-                            />
-                        )}
-                        <div className={styles.mobileCardActions}>
-                            <button onClick={() => handleEdit(record)} className={styles.editBtn}>編集</button>
-                            <button onClick={() => deleteRecord(record.id)} className={styles.deleteBtn}>削除</button>
-                        </div>
-                    </div>
-                ))}
+                    )
+                })}
                 {sortedRecords.length === 0 && (
                     <div className={styles.empty}>{monthLabel}の実績はありません</div>
                 )}
