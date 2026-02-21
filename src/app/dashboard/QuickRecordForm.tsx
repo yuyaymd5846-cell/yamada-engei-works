@@ -154,12 +154,15 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             })
             if (!res.ok) {
                 const errData = await res.json()
-                throw new Error(errData.error || 'アップロード失敗')
+                const errMsg = errData.error || 'アップロード失敗'
+                alert(`写真のアップロードに失敗しました: ${errMsg}`)
+                return null
             }
             const data = await res.json()
             return data.url
         } catch (err: any) {
             console.error('Photo upload error:', err)
+            alert(`写真のアップロードに失敗しました: ${err.message}`)
             return null
         } finally {
             setUploading(false)

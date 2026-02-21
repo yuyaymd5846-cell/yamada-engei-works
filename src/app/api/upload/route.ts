@@ -3,14 +3,22 @@ import { NextResponse } from 'next/server'
 
 const BUCKET = 'work-photos'
 
-// Use service_role key for server-side uploads (bypasses RLS)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-)
-
 export async function POST(request: Request) {
     try {
+        // Validate env vars
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error('Missing Supabase env vars:', {
+                url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+                key: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+            })
+            return NextResponse.json({ error: 'サーバー設定エラー: Supabase環境変数が未設定です' }, { status: 500 })
+        }
+
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        )
+
         const formData = await request.formData()
         const file = formData.get('file') as File
 
