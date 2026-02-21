@@ -2,6 +2,23 @@ import { NextResponse } from 'next/server'
 
 const BUCKET = 'work-photos'
 
+// Allow larger body for file uploads
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+}
+
+// GET endpoint to verify deployment version
+export async function GET() {
+    return NextResponse.json({
+        version: '2025-02-21-v3',
+        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
+    })
+}
+
 export async function POST(request: Request) {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -9,7 +26,7 @@ export async function POST(request: Request) {
 
         if (!supabaseUrl || !serviceRoleKey) {
             return NextResponse.json(
-                { error: `サーバー設定エラー: URL=${!!supabaseUrl}, KEY=${!!serviceRoleKey}` },
+                { error: `設定エラー: URL=${!!supabaseUrl}, KEY=${!!serviceRoleKey}` },
                 { status: 500 }
             )
         }
@@ -22,12 +39,12 @@ export async function POST(request: Request) {
         }
 
         // Generate unique filename
-        const ext = file.name.split('.').pop() || 'jpg'
         const timestamp = Date.now()
-        const fileName = `${timestamp}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const fileName = `${timestamp}_${Math.random().toString(36).slice(2, 8)}.jpg`
 
-        // Convert File to ArrayBuffer
+        // Convert File to Buffer
         const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
 
         // Upload directly via Supabase Storage REST API
         const uploadUrl = `${supabaseUrl}/storage/v1/object/${BUCKET}/${fileName}`
@@ -36,17 +53,16 @@ export async function POST(request: Request) {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': file.type || 'image/jpeg',
+                'Content-Type': 'image/jpeg',
                 'x-upsert': 'false'
             },
-            body: arrayBuffer
+            body: buffer
         })
 
         if (!uploadRes.ok) {
             const errText = await uploadRes.text()
-            console.error('Supabase upload error:', uploadRes.status, errText)
             return NextResponse.json(
-                { error: `Upload failed (${uploadRes.status}): ${errText}` },
+                { error: `Supabase error (${uploadRes.status}): ${errText}` },
                 { status: 500 }
             )
         }
@@ -56,9 +72,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ url: publicUrl })
     } catch (error: any) {
-        console.error('Upload error:', error)
         return NextResponse.json(
-            { error: `Upload failed: ${error.message}` },
+            { error: `Server error: ${error.message}` },
             { status: 500 }
         )
     }

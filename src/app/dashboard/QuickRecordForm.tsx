@@ -146,6 +146,15 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
         if (!photoFile) return null
         setUploading(true)
         try {
+            // Debug file size
+            const sizeMB = (photoFile.size / 1024 / 1024).toFixed(2)
+            console.log(`Uploading photo: ${photoFile.name}, ${sizeMB}MB, ${photoFile.type}`)
+
+            if (photoFile.size > 4 * 1024 * 1024) {
+                alert(`写真が大きすぎます (${sizeMB}MB)。4MB以下にしてください。`)
+                return null
+            }
+
             const formData = new FormData()
             formData.append('file', photoFile)
             const res = await fetch('/api/upload', {
@@ -153,16 +162,19 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                 body: formData
             })
             if (!res.ok) {
-                const errData = await res.json()
-                const errMsg = errData.error || 'アップロード失敗'
-                alert(`写真のアップロードに失敗しました: ${errMsg}`)
+                let errMsg = `HTTP ${res.status}`
+                try {
+                    const errData = await res.json()
+                    errMsg = errData.error || errMsg
+                } catch { }
+                alert(`アップロード失敗: ${errMsg}`)
                 return null
             }
             const data = await res.json()
             return data.url
         } catch (err: any) {
             console.error('Photo upload error:', err)
-            alert(`写真のアップロードに失敗しました: ${err.message}`)
+            alert(`アップロードエラー: ${err.message}\n\nファイルサイズ: ${(photoFile.size / 1024 / 1024).toFixed(2)}MB`)
             return null
         } finally {
             setUploading(false)
