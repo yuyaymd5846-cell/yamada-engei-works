@@ -25,16 +25,29 @@ interface WorkTarget {
 }
 
 async function getTodaysWork() {
-    const today = new Date()
-    const todayStart = new Date(today.setHours(0, 0, 0, 0))
-    const todayEnd = new Date(today.setHours(23, 59, 59, 999))
+    const now = new Date()
+    const jstFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric', month: 'numeric', day: 'numeric',
+    })
+    const parts = jstFormatter.formatToParts(now)
+    const year = parseInt(parts.find(p => p.type === 'year')!.value)
+    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1
+    const day = parseInt(parts.find(p => p.type === 'day')!.value)
+
+    // JST Boundaries for WorkRecords created at "now" (UTC 15:00 prev day to 14:59:59 today)
+    const todayStartJST = new Date(Date.UTC(year, month, day - 1, 15, 0, 0, 0))
+    const todayEndJST = new Date(Date.UTC(year, month, day, 14, 59, 59, 999))
+
+    // Abstract JST date normalized to UTC midnight for comparing with stored cycle dates
+    const todayUTC = new Date(Date.UTC(year, month, day))
 
     // 1. Get all active crop cycles
     const activeCycles = await prisma.cropCycle.findMany({
         where: {
             OR: [
                 { harvestEnd: null },
-                { harvestEnd: { gte: todayStart } }
+                { harvestEnd: { gte: todayUTC } }
             ]
         }
     })
@@ -43,8 +56,8 @@ async function getTodaysWork() {
     const todaysRecords = await prisma.workRecord.findMany({
         where: {
             date: {
-                gte: todayStart,
-                lte: todayEnd,
+                gte: todayStartJST,
+                lte: todayEndJST,
             }
         }
     })
@@ -61,10 +74,10 @@ async function getTodaysWork() {
     // 3. Get active schedules from Gantt chart to refine visibility
     const activeSchedules = await prisma.cropSchedule.findMany({
         where: {
-            startDate: { lte: todayEnd },
+            startDate: { lte: todayUTC },
             OR: [
                 { endDate: null },
-                { endDate: { gte: todayStart } }
+                { endDate: { gte: todayUTC } }
             ]
         }
     })
@@ -101,7 +114,7 @@ async function getTodaysWork() {
         if (loDate) loDate.setHours(0, 0, 0, 0)
 
         // 1. 定植 (Planting day)
-        if (pDate && todayStart.getTime() === pDate.getTime()) {
+        if (pDate && todayUTC.getTime() === pDate.getTime()) {
             addTarget('定植', cycle.greenhouseId)
             addTarget('杭打ち', cycle.greenhouseId) // Assuming 杭打ち is also on planting day
         }
@@ -110,26 +123,26 @@ async function getTodaysWork() {
         if (pDate) {
             const yesterdayOfPlanting = new Date(pDate)
             yesterdayOfPlanting.setDate(pDate.getDate() - 1)
-            if (todayStart.getTime() === yesterdayOfPlanting.getTime()) {
+            if (todayUTC.getTime() === yesterdayOfPlanting.getTime()) {
                 addTarget('圃場準備', cycle.greenhouseId)
             }
         }
 
         // 3. 収穫・出荷調整・出荷 (During harvest period)
-        if (hStart && hEnd && todayStart >= hStart && todayStart <= hEnd) {
+        if (hStart && hEnd && todayUTC >= hStart && todayUTC <= hEnd) {
             addTarget('収穫', cycle.greenhouseId)
             addTarget('出荷調整（手作業）', cycle.greenhouseId)
             addTarget('出荷', cycle.greenhouseId)
         }
 
         // 4. 片付け (On last day of harvest)
-        if (hEnd && todayStart.getTime() === hEnd.getTime()) {
+        if (hEnd && todayUTC.getTime() === hEnd.getTime()) {
             addTarget('片付け', cycle.greenhouseId)
         }
 
         // 5. 発蕾確認 (20-22 days after lightsOffDate)
         if (loDate) {
-            const diffDays = Math.floor((todayStart.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
+            const diffDays = Math.floor((todayUTC.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
             if (diffDays >= 20 && diffDays <= 22) {
                 addTarget('発蕾確認', cycle.greenhouseId)
             }
@@ -137,7 +150,7 @@ async function getTodaysWork() {
 
         // 6. ヤゴかき (35-45 days after lightsOffDate)
         if (loDate) {
-            const diffDays = Math.floor((todayStart.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
+            const diffDays = Math.floor((todayUTC.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
             if (diffDays >= 35 && diffDays <= 45) {
                 addTarget('ヤゴかき', cycle.greenhouseId)
             }
@@ -145,17 +158,16 @@ async function getTodaysWork() {
 
         // 7. 頂花取り (40-45 days after lightsOffDate)
         if (loDate) {
-            const diffDays = Math.floor((todayStart.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
+            const diffDays = Math.floor((todayUTC.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
             if (diffDays >= 40 && diffDays <= 45) {
                 addTarget('頂花取り', cycle.greenhouseId)
             }
         }
 
-        // 8. 消灯 (20-25 days after plantingDate)
+        // 8. 消灯 (On lightsOffDate)
         // Hide if harvest has started in Gantt chart
-        if (pDate && !harvestingGreenhouseIds.has(cycle.greenhouseId)) {
-            const diffDays = Math.floor((todayStart.getTime() - pDate.getTime()) / (1000 * 60 * 60 * 24))
-            if (diffDays >= 20 && diffDays <= 25) {
+        if (loDate && !harvestingGreenhouseIds.has(cycle.greenhouseId)) {
+            if (todayUTC.getTime() === loDate.getTime()) {
                 addTarget('消灯', cycle.greenhouseId)
             }
         }
@@ -164,18 +176,18 @@ async function getTodaysWork() {
         if (pDate) {
             const yesterdayOfPlanting = new Date(pDate)
             yesterdayOfPlanting.setDate(pDate.getDate() - 1)
-            if (todayStart.getTime() === yesterdayOfPlanting.getTime()) {
+            if (todayUTC.getTime() === yesterdayOfPlanting.getTime()) {
                 addTarget('施肥', cycle.greenhouseId)
             }
         }
 
         // 10. ハダニ特別防除 (May 20th - Oct 31st, 35-40 days after lightsOffDate)
-        const month = todayStart.getMonth() + 1 // 1-12
-        const day = todayStart.getDate()
-        const isTargetSeason = (month === 5 && day >= 20) || (month > 5 && month <= 10)
+        const monthFilter = todayUTC.getMonth() + 1 // 1-12
+        const dayFilter = todayUTC.getDate()
+        const isTargetSeason = (monthFilter === 5 && dayFilter >= 20) || (monthFilter > 5 && monthFilter <= 10)
 
         if (isTargetSeason && loDate) {
-            const diffDays = Math.floor((todayStart.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
+            const diffDays = Math.floor((todayUTC.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
             if (diffDays >= 35 && diffDays <= 40) {
                 addTarget('ハダニ特別防除', cycle.greenhouseId)
             }
