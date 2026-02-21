@@ -71,16 +71,69 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
         }
     }
 
-    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-        setPhotoFile(file)
-        // Create preview
+
+        // Compress the image before setting
+        const compressed = await compressImage(file)
+        setPhotoFile(compressed)
+
+        // Create preview from compressed file
         const reader = new FileReader()
         reader.onload = (ev) => {
             setPhotoPreview(ev.target?.result as string)
         }
-        reader.readAsDataURL(file)
+        reader.readAsDataURL(compressed)
+    }
+
+    const compressImage = (file: File): Promise<File> => {
+        return new Promise((resolve) => {
+            const MAX_SIZE = 1200 // max width/height in px
+            const QUALITY = 0.7  // JPEG quality (0-1)
+
+            const img = new Image()
+            const url = URL.createObjectURL(file)
+            img.onload = () => {
+                URL.revokeObjectURL(url)
+
+                let { width, height } = img
+                // Scale down if larger than MAX_SIZE
+                if (width > MAX_SIZE || height > MAX_SIZE) {
+                    if (width > height) {
+                        height = Math.round((height * MAX_SIZE) / width)
+                        width = MAX_SIZE
+                    } else {
+                        width = Math.round((width * MAX_SIZE) / height)
+                        height = MAX_SIZE
+                    }
+                }
+
+                const canvas = document.createElement('canvas')
+                canvas.width = width
+                canvas.height = height
+                const ctx = canvas.getContext('2d')!
+                ctx.drawImage(img, 0, 0, width, height)
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            const compressed = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            })
+                            resolve(compressed)
+                        } else {
+                            resolve(file) // fallback to original
+                        }
+                    },
+                    'image/jpeg',
+                    QUALITY
+                )
+            }
+            img.onerror = () => resolve(file) // fallback
+            img.src = url
+        })
     }
 
     const removePhoto = () => {
@@ -107,7 +160,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             return data.url
         } catch (err: any) {
             console.error('Photo upload error:', err)
-            // Don't block record saving if photo fails
             return null
         } finally {
             setUploading(false)
