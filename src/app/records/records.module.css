@@ -427,3 +427,74 @@
     gap: 6px;
     justify-content: flex-end;
 }
+
+/* Photo Thumbnails */
+.thumbnail {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s;
+}
+
+.thumbnail:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.mobilePhoto {
+    width: 100%;
+    max-height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 4px 0;
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+}
+
+/* Lightbox */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    cursor: pointer;
+}
+
+.lightboxImg {
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.lightboxClose {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.lightboxClose:hover {
+    background: rgba(255, 255, 255, 0.35);
+}

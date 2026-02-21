@@ -67,6 +67,7 @@ model WorkRecord {
   areaAcre       Float    @map("area_acre")
   spentTime      Float    @map("spent_time")
   note           String?
+  photoUrl       String?  @map("photo_url")
   date           DateTime @default(now())
 
   createdAt      DateTime @default(now()) @map("created_at")

@@ -14,6 +14,7 @@ interface WorkRecord {
     areaAcre: number
     spentTime: number
     note: string
+    photoUrl: string | null
     date: string
 }
 
@@ -26,6 +27,7 @@ export default function WorkRecordsPage() {
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editValues, setEditValues] = useState<Partial<WorkRecord>>({})
     const [importing, setImporting] = useState(false)
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
     // Filter state
     const [filterMonth, setFilterMonth] = useState(() => {
@@ -462,6 +464,7 @@ export default function WorkRecordsPage() {
                                 時間{sortIndicator('spentTime')}
                             </th>
                             <th>備考</th>
+                            <th>📷</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -521,6 +524,16 @@ export default function WorkRecordsPage() {
                                         )}
                                     </td>
                                     <td>
+                                        {record.photoUrl && (
+                                            <img
+                                                src={record.photoUrl}
+                                                alt="写真"
+                                                className={styles.thumbnail}
+                                                onClick={() => setLightboxUrl(record.photoUrl)}
+                                            />
+                                        )}
+                                    </td>
+                                    <td>
                                         {isEditing ? (
                                             <button onClick={() => handleSave(record.id)} className={styles.saveInlineBtn}>保存</button>
                                         ) : (
@@ -535,7 +548,7 @@ export default function WorkRecordsPage() {
                         })}
                         {sortedRecords.length === 0 && (
                             <tr>
-                                <td colSpan={7} className={styles.empty}>
+                                <td colSpan={8} className={styles.empty}>
                                     {monthLabel}の実績はありません
                                 </td>
                             </tr>
@@ -560,6 +573,14 @@ export default function WorkRecordsPage() {
                             {record.batchNumber && <span>第{record.batchNumber}作</span>}
                             {record.note && <span className={styles.mobileNote}>{record.note}</span>}
                         </div>
+                        {record.photoUrl && (
+                            <img
+                                src={record.photoUrl}
+                                alt="写真"
+                                className={styles.mobilePhoto}
+                                onClick={() => setLightboxUrl(record.photoUrl)}
+                            />
+                        )}
                         <div className={styles.mobileCardActions}>
                             <button onClick={() => handleEdit(record)} className={styles.editBtn}>編集</button>
                             <button onClick={() => deleteRecord(record.id)} className={styles.deleteBtn}>削除</button>
@@ -570,6 +591,14 @@ export default function WorkRecordsPage() {
                     <div className={styles.empty}>{monthLabel}の実績はありません</div>
                 )}
             </div>
+
+            {/* Lightbox */}
+            {lightboxUrl && (
+                <div className={styles.lightbox} onClick={() => setLightboxUrl(null)}>
+                    <img src={lightboxUrl} alt="拡大写真" className={styles.lightboxImg} />
+                    <button className={styles.lightboxClose} onClick={() => setLightboxUrl(null)}>✕</button>
+                </div>
+            )}
         </div>
     )
 }

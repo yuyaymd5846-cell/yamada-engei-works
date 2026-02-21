@@ -165,6 +165,7 @@ export async function POST(request: Request) {
                     areaAcre: finalArea,
                     spentTime: Number(spentTime),
                     note: note ? String(note) : "",
+                    photoUrl: data.photoUrl || null,
                     date: date ? new Date(date) : new Date()
                 }
             })
@@ -199,6 +200,7 @@ export async function PATCH(request: Request) {
                 areaAcre: areaAcre !== undefined ? Number(areaAcre) : undefined,
                 spentTime: spentTime !== undefined ? Number(spentTime) : undefined,
                 note: note !== undefined ? note : undefined,
+                photoUrl: body.photoUrl !== undefined ? body.photoUrl : undefined,
             }
         })
 

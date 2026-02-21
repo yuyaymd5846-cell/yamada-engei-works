@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './QuickRecordForm.module.css'
 
@@ -21,13 +21,15 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     const [timeHours, setTimeHours] = useState('')
     const [batchNumber, setBatchNumber] = useState('')
 
+    // Photo State
+    const [photoFile, setPhotoFile] = useState<File | null>(null)
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
     // Initialize/Update defaults when suggestions change or form opens
     useEffect(() => {
         if (suggestedGreenhouses.length > 0 && selectedGreenhouseIds.length === 0) {
-            // Default to selecting ALL suggestions for convenience? Or just the first one?
-            // User request implies bulk is common. Let's select all suggested ones by default.
-            // Actually, let's just select the first one to be safe, or all. 
-            // "Pre-fill" usually helps. Let's select ALL for maximum efficiency if they are "suggestions".
             setSelectedGreenhouseIds(suggestedGreenhouses.map(g => g.id))
         }
     }, [suggestedGreenhouses, isOpen])
@@ -35,14 +37,10 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     // Update estimated time AND batch number when selection changes
     useEffect(() => {
         if (selectedGreenhouseIds.length > 0) {
-            // 1. Update Batch Number from the *first* selected house (assuming mostly same for batch tasks)
-            // or maybe leaving it blank if mixed? For now, take first.
             const firstGH = suggestedGreenhouses.find(g => g.id === selectedGreenhouseIds[0])
             if (firstGH && firstGH.lastBatchNumber !== null && !batchNumber) {
                 setBatchNumber(firstGH.lastBatchNumber.toString())
             }
-
-            // 2. Update estimated hours (Sum of all selected)
             if (defaultTime10a > 0) {
                 let totalArea = 0
                 selectedGreenhouseIds.forEach(id => {
@@ -73,6 +71,49 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
         }
     }
 
+    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setPhotoFile(file)
+        // Create preview
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+            setPhotoPreview(ev.target?.result as string)
+        }
+        reader.readAsDataURL(file)
+    }
+
+    const removePhoto = () => {
+        setPhotoFile(null)
+        setPhotoPreview(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
+    const uploadPhoto = async (): Promise<string | null> => {
+        if (!photoFile) return null
+        setUploading(true)
+        try {
+            const formData = new FormData()
+            formData.append('file', photoFile)
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            if (!res.ok) {
+                const errData = await res.json()
+                throw new Error(errData.error || 'アップロード失敗')
+            }
+            const data = await res.json()
+            return data.url
+        } catch (err: any) {
+            console.error('Photo upload error:', err)
+            // Don't block record saving if photo fails
+            return null
+        } finally {
+            setUploading(false)
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -83,15 +124,9 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                 throw new Error('ハウスが選択されていません')
             }
 
-            // Calculate time per house proportional to area? 
-            // Or just divide total time equally? Or assign calculated time?
-            // User inputs TOTAL actual time for the batch.
-            // We should distribute it? Or record calculated target for each?
-            // Usually "Work Record" needs actual time per house.
-            // If user inputs 1.5h for 3 houses, we should probably record 0.5h each?
-            // OR, weigh by area.
+            // Upload photo first if present
+            const photoUrl = await uploadPhoto()
 
-            // Let's weigh by area.
             let totalSelectedArea = 0
             selectedGreenhouseIds.forEach(id => {
                 const gh = suggestedGreenhouses.find(g => g.id === id)
@@ -102,7 +137,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
             const payload = selectedGreenhouseIds.map(id => {
                 const gh = suggestedGreenhouses.find(g => g.id === id)!
-                // Distribute duration based on area ratio
                 const ratio = totalSelectedArea > 0 ? gh.areaAcre / totalSelectedArea : 1 / selectedGreenhouseIds.length
                 const hoursForHouse = parseFloat((totalHours * ratio).toFixed(2))
 
@@ -110,8 +144,9 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                     workName,
                     greenhouseName: gh.name,
                     batchNumber: batchNumber ? parseInt(batchNumber) : null,
-                    spentTime: hoursForHouse, // hr
+                    spentTime: hoursForHouse,
                     areaAcre: gh.areaAcre,
+                    photoUrl: photoUrl, // Same photo for all houses in batch
                     date: new Date().toISOString()
                 }
             })
@@ -130,6 +165,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             setIsOpen(false)
             setTimeHours('')
             setBatchNumber('')
+            removePhoto()
             router.refresh()
 
         } catch (err: any) {
@@ -190,7 +226,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             </div>
 
             <div className={styles.row}>
-                <div className={styles.group}>
+                <div className={styles.group} style={{ flex: 1 }}>
                     <label>合計時間 (時間)</label>
                     <input
                         type="number"
@@ -203,23 +239,51 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                         className={styles.input}
                     />
                 </div>
-                <div className={styles.actions}>
-                    <button
-                        type="button"
-                        onClick={() => setIsOpen(false)}
-                        className={styles.cancelButton}
-                        disabled={isSubmitting}
-                    >
-                        ✕
-                    </button>
-                    <button
-                        type="submit"
-                        className={styles.submitButton}
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? '保存中...' : `一括保存 (${selectedGreenhouseIds.length})`}
-                    </button>
+
+                {/* Photo section */}
+                <div className={styles.group} style={{ flex: 1 }}>
+                    <label>📷 写真</label>
+                    {photoPreview ? (
+                        <div className={styles.photoPreviewWrap}>
+                            <img src={photoPreview} alt="プレビュー" className={styles.photoPreview} />
+                            <button type="button" onClick={removePhoto} className={styles.photoRemove}>✕</button>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className={styles.photoBtn}
+                        >
+                            📸 撮影/選択
+                        </button>
+                    )}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoSelect}
+                        style={{ display: 'none' }}
+                    />
                 </div>
+            </div>
+
+            <div className={styles.actions}>
+                <button
+                    type="button"
+                    onClick={() => { setIsOpen(false); removePhoto() }}
+                    className={styles.cancelButton}
+                    disabled={isSubmitting}
+                >
+                    ✕
+                </button>
+                <button
+                    type="submit"
+                    className={styles.submitButton}
+                    disabled={isSubmitting || uploading}
+                >
+                    {uploading ? '📷 アップロード中...' : isSubmitting ? '保存中...' : `一括保存 (${selectedGreenhouseIds.length})`}
+                </button>
             </div>
         </form>
     )

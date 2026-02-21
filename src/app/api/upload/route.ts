@@ -1,35 +1,46 @@
-
+import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
-import { v4 as uuidv4 } from 'uuid'
+
+const BUCKET = 'work-photos'
 
 export async function POST(request: Request) {
     try {
         const formData = await request.formData()
-        const file = formData.get('file') as File | null
+        const file = formData.get('file') as File
 
         if (!file) {
-            return NextResponse.json({ error: 'ファイルが見つかりません' }, { status: 400 })
+            return NextResponse.json({ error: 'No file provided' }, { status: 400 })
         }
 
-        const bytes = await file.arrayBuffer()
-        const buffer = Buffer.from(bytes)
+        // Generate unique filename
+        const ext = file.name.split('.').pop() || 'jpg'
+        const timestamp = Date.now()
+        const fileName = `${timestamp}_${Math.random().toString(36).slice(2, 8)}.${ext}`
 
-        // Unique filename
-        const ext = path.extname(file.name) || '.jpg'
-        const fileName = `${uuidv4()}${ext}`
-        const relativePath = `/uploads/${fileName}`
-        const absolutePath = path.join(process.cwd(), 'public', 'uploads', fileName)
+        // Convert File to ArrayBuffer then to Uint8Array for Supabase
+        const arrayBuffer = await file.arrayBuffer()
+        const uint8Array = new Uint8Array(arrayBuffer)
 
-        await writeFile(absolutePath, buffer)
+        const { data, error } = await supabase.storage
+            .from(BUCKET)
+            .upload(fileName, uint8Array, {
+                contentType: file.type || 'image/jpeg',
+                upsert: false
+            })
 
-        return NextResponse.json({
-            url: relativePath,
-            name: file.name
-        })
+        if (error) {
+            console.error('Supabase upload error:', error)
+            return NextResponse.json({ error: `Upload failed: ${error.message}` }, { status: 500 })
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from(BUCKET)
+            .getPublicUrl(data.path)
+
+        return NextResponse.json({ url: urlData.publicUrl })
     } catch (error) {
-        console.error('Upload Error:', error)
-        return NextResponse.json({ error: 'アップロードに失敗しました' }, { status: 500 })
+        console.error('Upload error:', error)
+        return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
     }
 }
