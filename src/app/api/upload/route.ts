@@ -1,7 +1,13 @@
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 const BUCKET = 'work-photos'
+
+// Use service_role key for server-side uploads (bypasses RLS)
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+)
 
 export async function POST(request: Request) {
     try {
@@ -21,7 +27,7 @@ export async function POST(request: Request) {
         const arrayBuffer = await file.arrayBuffer()
         const uint8Array = new Uint8Array(arrayBuffer)
 
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseAdmin.storage
             .from(BUCKET)
             .upload(fileName, uint8Array, {
                 contentType: file.type || 'image/jpeg',
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
         }
 
         // Get public URL
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = supabaseAdmin.storage
             .from(BUCKET)
             .getPublicUrl(data.path)
 
