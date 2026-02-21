@@ -142,45 +142,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
-    const uploadPhoto = async (): Promise<string | null> => {
-        if (!photoFile) return null
-        setUploading(true)
-        try {
-            // Debug file size
-            const sizeMB = (photoFile.size / 1024 / 1024).toFixed(2)
-            console.log(`Uploading photo: ${photoFile.name}, ${sizeMB}MB, ${photoFile.type}`)
-
-            if (photoFile.size > 4 * 1024 * 1024) {
-                alert(`写真が大きすぎます (${sizeMB}MB)。4MB以下にしてください。`)
-                return null
-            }
-
-            const formData = new FormData()
-            formData.append('file', photoFile)
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            })
-            if (!res.ok) {
-                let errMsg = `HTTP ${res.status}`
-                try {
-                    const errData = await res.json()
-                    errMsg = errData.error || errMsg
-                } catch { }
-                alert(`アップロード失敗: ${errMsg}`)
-                return null
-            }
-            const data = await res.json()
-            return data.url
-        } catch (err: any) {
-            console.error('Photo upload error:', err)
-            alert(`アップロードエラー: ${err.message}\n\nファイルサイズ: ${(photoFile.size / 1024 / 1024).toFixed(2)}MB`)
-            return null
-        } finally {
-            setUploading(false)
-        }
-    }
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -191,9 +152,8 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                 throw new Error('ハウスが選択されていません')
             }
 
-            // Upload photo first if present
-            const photoUrl = await uploadPhoto()
-            console.log('Photo upload result:', { hasPhotoFile: !!photoFile, photoUrl })
+            // Use the base64 preview directly as photoUrl (no server upload needed)
+            const photoUrl = photoPreview
 
             let totalSelectedArea = 0
             selectedGreenhouseIds.forEach(id => {
@@ -218,11 +178,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                     date: new Date().toISOString()
                 }
             })
-
-            // Debug: show what we're sending
-            if (photoFile) {
-                alert(`写真デバッグ: photoUrl=${photoUrl || '(なし)'}\npayload photoUrl=${payload[0]?.photoUrl || '(なし)'}`)
-            }
 
             const res = await fetch('/api/record', {
                 method: 'POST',
