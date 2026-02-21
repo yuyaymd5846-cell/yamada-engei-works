@@ -181,6 +181,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
             // Upload photo first if present
             const photoUrl = await uploadPhoto()
+            console.log('Photo upload result:', { hasPhotoFile: !!photoFile, photoUrl })
 
             let totalSelectedArea = 0
             selectedGreenhouseIds.forEach(id => {
@@ -201,10 +202,15 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                     batchNumber: batchNumber ? parseInt(batchNumber) : null,
                     spentTime: hoursForHouse,
                     areaAcre: gh.areaAcre,
-                    photoUrl: photoUrl, // Same photo for all houses in batch
+                    photoUrl: photoUrl,
                     date: new Date().toISOString()
                 }
             })
+
+            // Debug: show what we're sending
+            if (photoFile) {
+                alert(`写真デバッグ: photoUrl=${photoUrl || '(なし)'}\npayload photoUrl=${payload[0]?.photoUrl || '(なし)'}`)
+            }
 
             const res = await fetch('/api/record', {
                 method: 'POST',
