@@ -10,9 +10,13 @@ import QuickRecordForm from './QuickRecordForm'
 
 interface WorkTarget {
     manual: any
+    displayWorkName?: string
     targets: {
-        greenhouseId: String
+        greenhouseId: string
+        greenhouseName: string
+        areaAcre: number
         targetTime: number
+        lastBatchNumber: number | null
     }[]
     targetTotalTime: number
     actualTime: number
@@ -48,8 +52,10 @@ async function getTodaysWork() {
     // Map to store total actual time (minutes) per work name
     const actualTimeMap = new Map<string, number>()
     todaysRecords.forEach(record => {
-        const current = actualTimeMap.get(record.workName) || 0
-        actualTimeMap.set(record.workName, current + record.spentTime)
+        // Handle potential appended greenhouse names for backward compatibility
+        const baseName = record.workName.split(' (')[0]
+        const current = actualTimeMap.get(baseName) || 0
+        actualTimeMap.set(baseName, current + record.spentTime)
     })
 
     // 3. Get active schedules from Gantt chart to refine visibility
@@ -228,7 +234,7 @@ async function getTodaysWork() {
                     if (greenhouse) {
                         // Calculate actual time SPECIFIC to this house for this task
                         const thisHouseRecords = todaysRecords.filter(r =>
-                            r.workName === workName &&
+                            (r.workName === workName || r.workName.startsWith(workName)) &&
                             (r.greenhouseName === greenhouse.name)
                         )
                         const thisHouseActualTime = thisHouseRecords.reduce((sum, r) => sum + r.spentTime, 0)
@@ -249,14 +255,9 @@ async function getTodaysWork() {
                         let displayName = workName
                         if (workName === '出荷調整（手作業）') displayName = '出荷調整'
 
-                        const specializedManual = {
-                            ...manual,
-                            workName: `${displayName} (${greenhouse.name})`, // Explicit title
-                            requiredTime10a: 0 // Disable auto-calc in QuickRecordForm
-                        }
-
                         finalResults.push({
-                            manual: specializedManual,
+                            manual,
+                            displayWorkName: `${displayName} (${greenhouse.name})`,
                             targets: [singleTarget],
                             targetTotalTime: 0,
                             actualTime: thisHouseActualTime,
@@ -267,7 +268,7 @@ async function getTodaysWork() {
                 }
             } else {
                 // Standard Logic for other tasks (Grouped)
-                const targets: { greenhouseId: String, greenhouseName: string, areaAcre: number, targetTime: number, lastBatchNumber: number | null }[] = []
+                const targets: { greenhouseId: string, greenhouseName: string, areaAcre: number, targetTime: number, lastBatchNumber: number | null }[] = []
                 let targetTotalTime = 0
 
                 // If it's a routine task with no specific house targeted yet, consider all houses
@@ -381,7 +382,7 @@ export default async function DashboardPage() {
                         <div key={i} className={`${styles.workCard} ${wt.isCompleted ? styles.completedCard : ''}`}>
                             <div className={styles.cardHeader}>
                                 <div className={styles.workTitleRow}>
-                                    <h3 className={styles.workName}>{wt.manual.workName}</h3>
+                                    <h3 className={styles.workName}>{wt.displayWorkName || wt.manual.workName}</h3>
                                     {wt.isCompleted && (
                                         <span className={styles.completedBadge}>✅ 完了</span>
                                     )}
