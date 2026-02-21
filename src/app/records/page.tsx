@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import styles from './records.module.css'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -17,12 +17,27 @@ interface WorkRecord {
     date: string
 }
 
+type SortKey = 'date' | 'workName' | 'greenhouseName' | 'spentTime'
+type SortDir = 'asc' | 'desc'
+
 export default function WorkRecordsPage() {
     const [records, setRecords] = useState<WorkRecord[]>([])
     const [loading, setLoading] = useState(true)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editValues, setEditValues] = useState<Partial<WorkRecord>>({})
     const [importing, setImporting] = useState(false)
+
+    // Filter state
+    const [filterMonth, setFilterMonth] = useState(() => {
+        const now = new Date()
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    })
+    const [filterGH, setFilterGH] = useState('all')
+    const [filterWork, setFilterWork] = useState('all')
+
+    // Sort state
+    const [sortKey, setSortKey] = useState<SortKey>('date')
+    const [sortDir, setSortDir] = useState<SortDir>('desc')
 
     const fetchRecords = async () => {
         try {
@@ -40,24 +55,106 @@ export default function WorkRecordsPage() {
         fetchRecords()
     }, [])
 
+    // Unique values for dropdowns
+    const uniqueGreenhouses = useMemo(() =>
+        [...new Set(records.map(r => r.greenhouseName))].sort()
+        , [records])
 
+    const uniqueWorkNames = useMemo(() =>
+        [...new Set(records.map(r => r.workName))].sort()
+        , [records])
+
+    // Month navigation
+    const navigateMonth = (delta: number) => {
+        const [y, m] = filterMonth.split('-').map(Number)
+        const d = new Date(y, m - 1 + delta, 1)
+        setFilterMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    }
+
+    const monthLabel = useMemo(() => {
+        const [y, m] = filterMonth.split('-').map(Number)
+        return `${y}年${m}月`
+    }, [filterMonth])
+
+    // Filtered records
+    const filteredRecords = useMemo(() => {
+        const [y, m] = filterMonth.split('-').map(Number)
+        return records.filter(r => {
+            const d = new Date(r.date)
+            if (d.getFullYear() !== y || d.getMonth() + 1 !== m) return false
+            if (filterGH !== 'all' && r.greenhouseName !== filterGH) return false
+            if (filterWork !== 'all' && r.workName !== filterWork) return false
+            return true
+        })
+    }, [records, filterMonth, filterGH, filterWork])
+
+    // Sorted records
+    const sortedRecords = useMemo(() => {
+        const sorted = [...filteredRecords].sort((a, b) => {
+            let cmp = 0
+            switch (sortKey) {
+                case 'date':
+                    cmp = new Date(a.date).getTime() - new Date(b.date).getTime()
+                    break
+                case 'workName':
+                    cmp = a.workName.localeCompare(b.workName)
+                    break
+                case 'greenhouseName':
+                    cmp = a.greenhouseName.localeCompare(b.greenhouseName)
+                    break
+                case 'spentTime':
+                    cmp = a.spentTime - b.spentTime
+                    break
+            }
+            return sortDir === 'asc' ? cmp : -cmp
+        })
+        return sorted
+    }, [filteredRecords, sortKey, sortDir])
+
+    // Summary stats
+    const summary = useMemo(() => {
+        const totalCount = filteredRecords.length
+        const totalTime = filteredRecords.reduce((sum, r) => sum + r.spentTime, 0)
+
+        // Work-name breakdown
+        const byWork = new Map<string, number>()
+        filteredRecords.forEach(r => {
+            byWork.set(r.workName, (byWork.get(r.workName) || 0) + r.spentTime)
+        })
+        const workBreakdown = [...byWork.entries()]
+            .sort((a, b) => b[1] - a[1]) // Most time first
+        const maxWorkTime = workBreakdown.length > 0 ? workBreakdown[0][1] : 1
+
+        return { totalCount, totalTime, workBreakdown, maxWorkTime }
+    }, [filteredRecords])
+
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortKey(key)
+            setSortDir('desc')
+        }
+    }
+
+    const sortIndicator = (key: SortKey) => {
+        if (sortKey !== key) return ''
+        return sortDir === 'asc' ? ' ▲' : ' ▼'
+    }
+
+    // ===== Import/Export/Edit logic (preserved from original) =====
     const processImportItems = async (rawData: any[]) => {
         if (!rawData || rawData.length === 0) {
             alert('データが見つかりませんでした。')
             setImporting(false)
             return
         }
-
-        // Logic to find header row if rawData is array of arrays (from XLSX header:1)
         let processedData = rawData
         let headerRowIndex = -1
-
         if (Array.isArray(rawData[0])) {
-            // Find row containing "日にち" or "ほ場名"
             headerRowIndex = rawData.findIndex(row =>
                 row && row.some((cell: any) => typeof cell === 'string' && (cell.includes('日にち') || cell.includes('ほ場名')))
             )
-
             if (headerRowIndex !== -1) {
                 const headers = rawData[headerRowIndex].map((h: any) => String(h || '').trim())
                 processedData = rawData.slice(headerRowIndex + 1).map(row => {
@@ -69,14 +166,10 @@ export default function WorkRecordsPage() {
                 })
             }
         }
-
-        // Map Excel headers to our API fields with robust key matching
         const findValue = (row: any, keys: string[]) => {
             const rowKeys = Object.keys(row)
-            // Prefer exact matches first to avoid "作" matching "作業名"
             let matchedKey = rowKeys.find(rk => keys.some(k => rk.trim() === k))
             if (!matchedKey) {
-                // Partial match fallback, but exclude "作業" if we are looking for short keys like "作"
                 matchedKey = rowKeys.find(rk => keys.some(k => {
                     const trimmed = rk.trim()
                     if (k === '作' && trimmed.includes('作業')) return false
@@ -85,7 +178,6 @@ export default function WorkRecordsPage() {
             }
             return matchedKey ? row[matchedKey] : undefined
         }
-
         const mappedRecords = processedData.map(row => {
             const dateVal = findValue(row, ['日にち', '日付'])
             const ghVal = findValue(row, ['ほ場名', 'ハウス', '場所'])
@@ -93,7 +185,6 @@ export default function WorkRecordsPage() {
             const batchVal = findValue(row, ['作目', '作', '回数', 'バッチ'])
             const timeVal = findValue(row, ['作業時間', '時間'])
             const noteVal = findValue(row, ['備考', 'メモ'])
-
             return {
                 date: dateVal,
                 greenhouseName: String(ghVal || '').trim(),
@@ -105,11 +196,10 @@ export default function WorkRecordsPage() {
         }).filter(r => r.workName && r.greenhouseName && r.workName !== '作業名')
 
         if (mappedRecords.length === 0) {
-            alert('有効なデータが見つかりませんでした。ヘッダー（日にち, ほ場名, 作業名...）が正しく含まれているか確認してください。')
+            alert('有効なデータが見つかりませんでした。')
             setImporting(false)
             return
         }
-
         try {
             const res = await fetch('/api/record', {
                 method: 'POST',
@@ -133,33 +223,28 @@ export default function WorkRecordsPage() {
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-
         setImporting(true)
-
         if (file.name.endsWith('.csv')) {
             Papa.parse(file, {
-                header: false, // Read as array of arrays to use same logic
+                header: false,
                 skipEmptyLines: true,
                 complete: (results) => {
                     processImportItems(results.data)
                     e.target.value = ''
                 },
-                error: (error) => {
+                error: () => {
                     alert('CSVファイルの読み取りに失敗しました')
                     setImporting(false)
                 }
             })
         } else {
-            // Excel (.xlsx, .xls)
             const reader = new FileReader()
             reader.onload = (evt) => {
                 try {
                     const bstr = evt.target?.result
                     const wb = XLSX.read(bstr, { type: 'binary', cellDates: true })
-                    // Try to find "作業一覧" or a sheet with "作業" in name, fallback to first sheet
                     const wsname = wb.SheetNames.find(n => n.includes('作業')) || wb.SheetNames[0]
                     const ws = wb.Sheets[wsname]
-                    // Read as array of arrays (header: 1) to find the actual header row
                     const data = XLSX.utils.sheet_to_json(ws, { header: 1 })
                     processImportItems(data)
                 } catch (err) {
@@ -182,22 +267,19 @@ export default function WorkRecordsPage() {
         setEditValues({
             date: new Date(record.date).toISOString().split('T')[0],
             batchNumber: record.batchNumber,
-            spentTime: record.spentTime, // Displayed as-is (hr)
+            spentTime: record.spentTime,
             note: record.note
         })
     }
 
     const handleSave = async (id: string) => {
         try {
-            // No conversion needed, raw value is in hours
             const payload = { ...editValues }
-
             const res = await fetch('/api/record', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, ...payload })
             })
-
             if (res.ok) {
                 setEditingId(null)
                 fetchRecords()
@@ -210,17 +292,18 @@ export default function WorkRecordsPage() {
     }
 
     const exportToCSV = () => {
-        if (records.length === 0) return
+        const target = filteredRecords.length > 0 ? sortedRecords : records
+        if (target.length === 0) return
         const headers = ['日付', '作業名', 'ハウス', '作目', '面積', '時間', '備考']
         const csvRows = [
             headers.join(','),
-            ...records.map(r => [
+            ...target.map(r => [
                 new Date(r.date).toLocaleDateString('ja-JP'),
                 r.workName,
                 r.greenhouseName,
                 r.batchNumber || '',
                 r.areaAcre,
-                r.spentTime, // hr
+                r.spentTime,
                 `"${r.note?.replace(/"/g, '""') || ''}"`
             ].join(','))
         ]
@@ -244,11 +327,8 @@ export default function WorkRecordsPage() {
         if (!confirm('このレコードを削除しますか？')) return
         try {
             const res = await fetch(`/api/record?id=${id}`, { method: 'DELETE' })
-            if (res.ok) {
-                fetchRecords()
-            } else {
-                alert('削除に失敗しました')
-            }
+            if (res.ok) fetchRecords()
+            else alert('削除に失敗しました')
         } catch (err) {
             alert('エラーが発生しました')
         }
@@ -271,13 +351,21 @@ export default function WorkRecordsPage() {
 
     if (loading) return <div className={styles.container}>読み込み中...</div>
 
+    // Bar colors for chart
+    const barColors = [
+        '#4caf50', '#2196f3', '#ff9800', '#e91e63', '#9c27b0',
+        '#00bcd4', '#795548', '#607d8b', '#f44336', '#3f51b5',
+        '#cddc39', '#ff5722', '#009688', '#673ab7', '#8bc34a'
+    ]
+
     return (
         <div className={styles.container}>
+            {/* Header */}
             <header className={styles.header}>
-                <h1>作業実績一覧</h1>
+                <h1>作業実績</h1>
                 <div className={styles.headerActions}>
                     <label className={styles.importBtn}>
-                        {importing ? '⌛ 取り込み中...' : '📥 Excelデータをインポート'}
+                        {importing ? '⌛...' : '📥 インポート'}
                         <input
                             type="file"
                             accept=".csv, .xlsx, .xls"
@@ -287,32 +375,98 @@ export default function WorkRecordsPage() {
                         />
                     </label>
                     <button onClick={exportToCSV} className={styles.exportBtn} disabled={records.length === 0}>
-                        📤 CSV出力
+                        📤 CSV
                     </button>
-                    <button onClick={downloadDB} className={styles.dbBtn}>
-                        💾 DBバックアップ
-                    </button>
-                    <button onClick={clearAllRecords} className={styles.clearBtn}>
-                        🗑️ 全消去
-                    </button>
+                    <button onClick={downloadDB} className={styles.dbBtn}>💾 DB</button>
+                    <button onClick={clearAllRecords} className={styles.clearBtn}>🗑️</button>
                 </div>
             </header>
 
+            {/* Filter Bar */}
+            <div className={styles.filterBar}>
+                <div className={styles.monthNav}>
+                    <button onClick={() => navigateMonth(-1)} className={styles.monthBtn}>◀</button>
+                    <span className={styles.monthLabel}>{monthLabel}</span>
+                    <button onClick={() => navigateMonth(1)} className={styles.monthBtn}>▶</button>
+                </div>
+                <select
+                    value={filterGH}
+                    onChange={e => setFilterGH(e.target.value)}
+                    className={styles.filterSelect}
+                >
+                    <option value="all">全ハウス</option>
+                    {uniqueGreenhouses.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <select
+                    value={filterWork}
+                    onChange={e => setFilterWork(e.target.value)}
+                    className={styles.filterSelect}
+                >
+                    <option value="all">全作業</option>
+                    {uniqueWorkNames.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
+            </div>
+
+            {/* Summary Cards */}
+            <div className={styles.summaryRow}>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{summary.totalCount}</div>
+                    <div className={styles.summaryLabel}>件</div>
+                </div>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{summary.totalTime.toFixed(1)}</div>
+                    <div className={styles.summaryLabel}>時間</div>
+                </div>
+            </div>
+
+            {/* Work Breakdown Chart */}
+            {summary.workBreakdown.length > 0 && (
+                <div className={styles.chartSection}>
+                    <h3 className={styles.chartTitle}>作業別時間</h3>
+                    <div className={styles.chartBody}>
+                        {summary.workBreakdown.map(([name, time], i) => (
+                            <div key={name} className={styles.chartRow}>
+                                <span className={styles.chartLabel}>{name}</span>
+                                <div className={styles.chartBarTrack}>
+                                    <div
+                                        className={styles.chartBar}
+                                        style={{
+                                            width: `${Math.max((time / summary.maxWorkTime) * 100, 2)}%`,
+                                            backgroundColor: barColors[i % barColors.length]
+                                        }}
+                                    />
+                                </div>
+                                <span className={styles.chartValue}>{time.toFixed(1)}h</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Records Table */}
             <div className={styles.tableWrapper}>
                 <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th style={{ width: '120px' }}>日付</th>
-                            <th>作業名</th>
-                            <th>圃場名</th>
-                            <th style={{ width: '80px' }}>作目</th>
-                            <th style={{ width: '80px' }}>時間</th>
+                            <th onClick={() => handleSort('date')} className={styles.sortable}>
+                                日付{sortIndicator('date')}
+                            </th>
+                            <th onClick={() => handleSort('workName')} className={styles.sortable}>
+                                作業名{sortIndicator('workName')}
+                            </th>
+                            <th onClick={() => handleSort('greenhouseName')} className={styles.sortable}>
+                                圃場{sortIndicator('greenhouseName')}
+                            </th>
+                            <th>作目</th>
+                            <th onClick={() => handleSort('spentTime')} className={styles.sortable}>
+                                時間{sortIndicator('spentTime')}
+                            </th>
                             <th>備考</th>
-                            <th style={{ width: '80px' }}>操作</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {records.map(record => {
+                        {sortedRecords.map(record => {
                             const isEditing = editingId === record.id
                             return (
                                 <tr key={record.id}>
@@ -325,7 +479,7 @@ export default function WorkRecordsPage() {
                                                 className={styles.inlineInput}
                                             />
                                         ) : (
-                                            new Date(record.date).toLocaleDateString('ja-JP')
+                                            new Date(record.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
                                         )}
                                     </td>
                                     <td>{record.workName}</td>
@@ -347,7 +501,7 @@ export default function WorkRecordsPage() {
                                             <input
                                                 type="number"
                                                 step="0.01"
-                                                value={editValues.spentTime} // This is now in hours
+                                                value={editValues.spentTime}
                                                 onChange={e => setEditValues({ ...editValues, spentTime: Number(e.target.value) })}
                                                 className={styles.inlineInput}
                                             />
@@ -379,13 +533,42 @@ export default function WorkRecordsPage() {
                                 </tr>
                             )
                         })}
-                        {records.length === 0 && (
+                        {sortedRecords.length === 0 && (
                             <tr>
-                                <td colSpan={7} className={styles.empty}>実績がまだありません。</td>
+                                <td colSpan={7} className={styles.empty}>
+                                    {monthLabel}の実績はありません
+                                </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className={styles.mobileCards}>
+                {sortedRecords.map(record => (
+                    <div key={record.id} className={styles.mobileCard}>
+                        <div className={styles.mobileCardHead}>
+                            <span className={styles.mobileDate}>
+                                {new Date(record.date).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+                            </span>
+                            <span className={styles.mobileWork}>{record.workName}</span>
+                            <span className={styles.mobileTime}>{record.spentTime}h</span>
+                        </div>
+                        <div className={styles.mobileCardBody}>
+                            <span>{record.greenhouseName}</span>
+                            {record.batchNumber && <span>第{record.batchNumber}作</span>}
+                            {record.note && <span className={styles.mobileNote}>{record.note}</span>}
+                        </div>
+                        <div className={styles.mobileCardActions}>
+                            <button onClick={() => handleEdit(record)} className={styles.editBtn}>編集</button>
+                            <button onClick={() => deleteRecord(record.id)} className={styles.deleteBtn}>削除</button>
+                        </div>
+                    </div>
+                ))}
+                {sortedRecords.length === 0 && (
+                    <div className={styles.empty}>{monthLabel}の実績はありません</div>
+                )}
             </div>
         </div>
     )
