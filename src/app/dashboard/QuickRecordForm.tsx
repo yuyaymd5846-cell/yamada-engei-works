@@ -19,7 +19,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     // Form State
     const [selectedGreenhouseIds, setSelectedGreenhouseIds] = useState<string[]>([])
     const [timeHours, setTimeHours] = useState('')
-    const [batchNumber, setBatchNumber] = useState('')
 
     // Photo State
     const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -34,13 +33,9 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
         }
     }, [suggestedGreenhouses, isOpen])
 
-    // Update estimated time AND batch number when selection changes
+    // Update estimated time when selection changes
     useEffect(() => {
         if (selectedGreenhouseIds.length > 0) {
-            const firstGH = suggestedGreenhouses.find(g => g.id === selectedGreenhouseIds[0])
-            if (firstGH && firstGH.lastBatchNumber !== null && !batchNumber) {
-                setBatchNumber(firstGH.lastBatchNumber.toString())
-            }
             if (defaultTime10a > 0) {
                 let totalArea = 0
                 selectedGreenhouseIds.forEach(id => {
@@ -171,7 +166,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                 return {
                     workName,
                     greenhouseName: gh.name,
-                    batchNumber: batchNumber ? parseInt(batchNumber) : null,
+                    batchNumber: gh.lastBatchNumber ?? null,
                     spentTime: hoursForHouse,
                     areaAcre: gh.areaAcre,
                     photoUrl: photoUrl,
@@ -192,7 +187,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             // Success
             setIsOpen(false)
             setTimeHours('')
-            setBatchNumber('')
             removePhoto()
             router.refresh()
 
@@ -238,18 +232,6 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                             </button>
                         ))}
                     </div>
-                </div>
-
-                <div className={styles.group} style={{ flex: 1 }}>
-                    <label>何作目</label>
-                    <input
-                        type="number"
-                        min="1"
-                        value={batchNumber}
-                        onChange={(e) => setBatchNumber(e.target.value)}
-                        placeholder="例: 1"
-                        className={styles.input}
-                    />
                 </div>
             </div>
 
