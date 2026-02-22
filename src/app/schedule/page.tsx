@@ -169,7 +169,39 @@ export default function SchedulePage() {
     }
 
     const openNewCycle = (gh: Greenhouse) => {
-        setSelectedCycle({ greenhouseId: gh.id, greenhouseName: gh.name, batchNumber: 1, varieties: [{ name: '', count: 0 }] })
+        // Find previous cycles for this greenhouse to pre-fill varieties
+        const ghCycles = cycles.filter(c => c.greenhouseId === gh.id)
+        let prevVarieties: Variety[] = [{ name: '', count: 0 }]
+        let nextBatch = 1
+
+        if (ghCycles.length > 0) {
+            // Sort by plantingDate desc to get the latest
+            const sorted = [...ghCycles].sort((a, b) => {
+                const da = a.plantingDate ? new Date(a.plantingDate).getTime() : 0
+                const db = b.plantingDate ? new Date(b.plantingDate).getTime() : 0
+                return db - da
+            })
+            const latest = sorted[0]
+
+            // Copy varieties from the most recent cycle
+            let varieties = latest.varieties
+            if (typeof varieties === 'string') {
+                try { varieties = JSON.parse(varieties) } catch { varieties = [] }
+            }
+            if (Array.isArray(varieties) && varieties.length > 0) {
+                prevVarieties = varieties as Variety[]
+            }
+
+            // Auto-increment batch number
+            nextBatch = (latest.batchNumber || 0) + 1
+        }
+
+        setSelectedCycle({
+            greenhouseId: gh.id,
+            greenhouseName: gh.name,
+            batchNumber: nextBatch,
+            varieties: prevVarieties
+        })
         setIsModalOpen(true)
     }
 
