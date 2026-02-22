@@ -105,13 +105,18 @@
     color: var(--color-primary);
 }
 
-.stageTag {
-    background-color: var(--color-accent-light);
-    color: var(--color-text-main);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
+.stageTag,
+.stageLabel {
+    background-color: #f0f7ee;
+    color: #2d6a1e;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border: 1px solid #d4e8cf;
+    letter-spacing: 0.02em;
 }
 
 .purpose {
@@ -257,10 +262,38 @@
     gap: var(--spacing-sm);
 }
 
+.footerInfo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .standardTime {
     font-size: 0.75rem;
     color: var(--color-text-muted);
-    text-align: right;
+}
+
+.link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 14px;
+    border: 1.5px solid #2563eb;
+    border-radius: 20px;
+    color: #2563eb;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.15s;
+    background: #eff6ff;
+}
+
+.link:hover {
+    background: #2563eb;
+    color: white;
 }
 
 .quickLinks {

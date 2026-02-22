@@ -440,7 +440,7 @@ export default async function DashboardPage() {
                                     <span className={styles.standardTime}>
                                         目安: {wt.manual.requiredTime10a}h/{(wt.manual.workName === 'かん水' || wt.manual.workName === '薬剤散布') ? '棟' : '10a'}
                                     </span>
-                                    <Link href={`/work/${wt.manual.id}`} className={styles.link}>手順を見る</Link>
+                                    <Link href={`/work/${wt.manual.id}`} className={styles.link}>📖 手順を見る</Link>
                                 </div>
                                 <QuickRecordForm
                                     workName={wt.manual.workName}
