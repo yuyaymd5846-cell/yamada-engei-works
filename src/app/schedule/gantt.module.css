@@ -15,7 +15,6 @@
 /* ── Header & Controls ── */
 .header {
     display: flex;
-    flex-direction: row;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
@@ -131,151 +130,111 @@
     }
 }
 
-/* ── Chart Container & Sticky Logic ── */
-.chartWrapper {
+/* ═══════════════════════════════════════
+   TWO-PANEL CHART LAYOUT
+   Left: Greenhouse names (fixed, no horizontal scroll)
+   Right: Timeline (scrolls both ways)
+   ═══════════════════════════════════════ */
+.chartLayout {
     flex: 1;
-    background: #fff;
-    border: 1px solid #eee;
+    display: flex;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    overflow: auto;
-    position: relative;
-    max-height: calc(100svh - 145px);
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
+    max-height: calc(100svh - 130px);
 }
 
 @media (orientation: landscape) and (max-height: 450px) {
-    .chartWrapper {
-        max-height: calc(100svh - 70px);
+    .chartLayout {
+        max-height: calc(100svh - 60px);
     }
 }
 
-/* ── Chart Header (Sticky top) ── */
-.chartHeader {
-    display: flex;
-    background: #e8e8e8;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    border-bottom: 2px solid #ccc;
+/* ── Left Panel: Greenhouse Names ── */
+.ghPanel {
+    width: 72px;
+    min-width: 72px;
+    background: #fff;
+    border-right: 2px solid #bbb;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+    /* Hide scrollbar – scroll is synced from timeline panel */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-/* ── Greenhouse Column Header (sticky top+left) ── */
-.ghColumnHeader {
-    width: 70px;
-    min-width: 70px;
-    padding: 4px;
-    font-weight: 700;
-    border-right: 2px solid #bbb;
-    position: sticky;
-    left: 0;
-    top: 0;
-    background: #e8e8e8;
-    z-index: 1200;
-    font-size: 0.7rem;
+.ghPanel::-webkit-scrollbar {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .ghPanel {
+        width: 150px;
+        min-width: 150px;
+    }
+}
+
+.ghPanelHeader {
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-weight: 700;
+    font-size: 0.7rem;
+    background: #e8e8e8;
+    border-bottom: 2px solid #ccc;
+    position: sticky;
+    top: 0;
+    z-index: 5;
 }
 
 @media (min-width: 768px) {
-    .ghColumnHeader {
-        width: 150px;
-        min-width: 150px;
-        font-size: 1rem;
+    .ghPanelHeader {
+        font-size: 0.95rem;
     }
 }
 
-.timelineHeader {
+.ghCell {
+    height: 48px;
     display: flex;
-    background: #e8e8e8;
-}
-
-.dayCell {
-    border-right: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2px 0;
-    background-color: #e8e8e8;
-    flex-shrink: 0;
-}
-
-.todayCell {
-    background-color: #e8f5e9 !important;
-}
-
-.dayLabel {
-    font-size: 0.72rem;
-    font-weight: 700;
-}
-
-.wdLabel {
-    font-size: 0.55rem;
-    color: #666;
-}
-
-/* ── Chart Body ── */
-.chartBody {
-    position: relative;
-    background-color: #fff;
-}
-
-.row {
-    display: flex;
-    border-bottom: 1px solid #eee;
-    background-color: #fff;
-    transition: background 0.1s;
-}
-
-.rowDragOver {
-    border-top: 2px solid #4caf50;
-    background-color: #f0fdf4;
-}
-
-/* ── Greenhouse Column (sticky left) ── */
-.ghColumn {
-    width: 70px;
-    min-width: 70px;
-    padding: 4px 2px;
-    border-right: 2px solid #bbb;
-    position: sticky;
-    left: 0;
-    /* KEY FIX: Must be above bars (z-index 150) and below chartHeader (1000) */
-    z-index: 500;
-    background-color: #ffffff;
-    cursor: pointer;
-    transition: background 0.1s;
-    display: flex;
-    flex-direction: row;
     align-items: center;
     gap: 2px;
-    /* Shadow helps visually separate from scrolling content */
-    box-shadow: 3px 0 6px rgba(0, 0, 0, 0.08);
+    padding: 4px 2px;
+    border-bottom: 1px solid #eee;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.1s;
 }
 
 @media (min-width: 768px) {
-    .ghColumn {
-        width: 150px;
-        min-width: 150px;
+    .ghCell {
+        height: 60px;
         padding: 6px 8px;
         gap: 6px;
     }
 }
 
-.ghColumn:hover {
+.ghCell:hover {
     background: #f0fdf4;
 }
 
-/* Drag handle */
+.ghCellDragOver {
+    border-top: 2px solid #4caf50;
+    background: #f0fdf4;
+}
+
 .dragHandle {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #aaa;
     cursor: grab;
-    padding: 2px 1px;
     touch-action: none;
     user-select: none;
     flex-shrink: 0;
     line-height: 1;
+    padding: 2px 1px;
 }
 
 .dragHandle:active {
@@ -312,23 +271,64 @@
     text-align: center;
 }
 
-/* ── Timeline Row ── */
+/* ── Right Panel: Timeline ── */
+.timelinePanel {
+    flex: 1;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #fff;
+}
+
+.timelineHeader {
+    display: flex;
+    background: #e8e8e8;
+    border-bottom: 2px solid #ccc;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.dayCell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 0;
+    border-right: 1px solid #ddd;
+    background: #e8e8e8;
+    flex-shrink: 0;
+    height: 42px;
+    justify-content: center;
+}
+
+.todayCell {
+    background: #d4edda !important;
+}
+
+.dayLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.wdLabel {
+    font-size: 0.55rem;
+    color: #666;
+}
+
 .timelineRow {
     position: relative;
     display: flex;
-    /* Below sticky column */
-    z-index: 10;
+    border-bottom: 1px solid #eee;
 }
 
 .gridCell {
     border-right: 1px solid #f0f0f0;
     height: 48px;
-    background-color: #fff;
+    background: #fff;
     flex-shrink: 0;
 }
 
 .todayGridCell {
-    background-color: #fafff9;
+    background: #fafff8;
 }
 
 @media (min-width: 768px) {
@@ -355,8 +355,7 @@
     text-overflow: ellipsis;
     cursor: pointer;
     transition: filter 0.1s, transform 0.1s;
-    /* Below sticky ghColumn (500) */
-    z-index: 50;
+    z-index: 2;
 }
 
 .bar:hover {

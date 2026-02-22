@@ -39,18 +39,21 @@ export default function SchedulePage() {
     const [orderedIds, setOrderedIds] = useState<string[]>([])
     const [loading, setLoading] = useState(true)
 
-    // Modal State
+    // Modal
     const [isModalOpen, setIsModalOpen] = useState(false)
     interface ParsedCropCycle extends Omit<CropCycle, 'varieties'> { varieties: Variety[] }
     const [selectedCycle, setSelectedCycle] = useState<Partial<ParsedCropCycle>>({})
 
-    // Calendar View State
+    // Calendar
     const [currentDate, setCurrentDate] = useState(() => {
-        const d = new Date()
-        d.setHours(0, 0, 0, 0)
-        return d
+        const d = new Date(); d.setHours(0, 0, 0, 0); return d
     })
     const [viewMode, setViewMode] = useState<'week' | 'month'>('month')
+
+    // Refs for synced scrolling
+    const ghPanelRef = useRef<HTMLDivElement>(null)
+    const timelinePanelRef = useRef<HTMLDivElement>(null)
+    const isSyncing = useRef(false)
 
     // Drag state
     const dragIndex = useRef<number | null>(null)
@@ -59,16 +62,14 @@ export default function SchedulePage() {
     const fetchData = async () => {
         try {
             const [cycleRes, ghRes] = await Promise.all([
-                fetch('/api/crop-cycle').then(res => res.json()),
-                fetch('/api/greenhouse').then(res => res.json())
+                fetch('/api/crop-cycle').then(r => r.json()),
+                fetch('/api/greenhouse').then(r => r.json())
             ])
-
             if (Array.isArray(cycleRes)) setCycles(cycleRes)
-            else { console.error("Cycles response is not an array:", cycleRes); setCycles([]) }
+            else { console.error("Cycles not array:", cycleRes); setCycles([]) }
 
             if (Array.isArray(ghRes)) {
                 setGreenhouses(ghRes)
-                // Load saved order from localStorage, fill in any missing IDs
                 const saved = JSON.parse(localStorage.getItem(LS_ORDER_KEY) || '[]') as string[]
                 const allIds = ghRes.map((g: Greenhouse) => g.id)
                 const merged = [
@@ -76,23 +77,36 @@ export default function SchedulePage() {
                     ...allIds.filter((id: string) => !saved.includes(id))
                 ]
                 setOrderedIds(merged)
-            } else {
-                console.error("Greenhouses response is not an array:", ghRes)
-                setGreenhouses([])
-            }
-        } catch (err) {
-            console.error("Fetch error:", err)
-        } finally {
-            setLoading(false)
-        }
+            } else { console.error("Greenhouses not array:", ghRes); setGreenhouses([]) }
+        } catch (err) { console.error("Fetch error:", err) }
+        finally { setLoading(false) }
     }
 
     useEffect(() => {
         fetchData()
         const timer = setTimeout(() => {
-            setLoading(prev => { if (prev) console.warn("Loading timed out after 10s"); return false })
+            setLoading(prev => { if (prev) console.warn("Timeout"); return false })
         }, 10000)
         return () => clearTimeout(timer)
+    }, [])
+
+    // Sync vertical scroll between left panel and timeline
+    const handleTimelineScroll = useCallback(() => {
+        if (isSyncing.current) return
+        isSyncing.current = true
+        if (timelinePanelRef.current && ghPanelRef.current) {
+            ghPanelRef.current.scrollTop = timelinePanelRef.current.scrollTop
+        }
+        requestAnimationFrame(() => { isSyncing.current = false })
+    }, [])
+
+    const handleGhScroll = useCallback(() => {
+        if (isSyncing.current) return
+        isSyncing.current = true
+        if (ghPanelRef.current && timelinePanelRef.current) {
+            timelinePanelRef.current.scrollTop = ghPanelRef.current.scrollTop
+        }
+        requestAnimationFrame(() => { isSyncing.current = false })
     }, [])
 
     const orderedGreenhouses = orderedIds
@@ -100,67 +114,50 @@ export default function SchedulePage() {
         .filter(Boolean) as Greenhouse[]
 
     const getDaysInView = () => {
-        const days = []
-        const start = new Date(currentDate)
-        start.setHours(0, 0, 0, 0)
+        const days: Date[] = []
+        const start = new Date(currentDate); start.setHours(0, 0, 0, 0)
         const count = viewMode === 'week' ? 7 : 30
         for (let i = 0; i < count; i++) {
-            const d = new Date(start)
-            d.setDate(start.getDate() + i)
-            days.push(d)
+            const d = new Date(start); d.setDate(start.getDate() + i); days.push(d)
         }
         return days
     }
 
     const days = getDaysInView()
     const DAY_WIDTH = viewMode === 'month' ? 30 : 100
+    const ROW_HEIGHT = 48
+    const ROW_HEIGHT_DESKTOP = 60
 
     const getBarStyle = (start: string | null, end: string | null, color: string) => {
         if (!start) return null
-        const startProp = new Date(start)
-        startProp.setHours(0, 0, 0, 0)
+        const startProp = new Date(start); startProp.setHours(0, 0, 0, 0)
         if (isNaN(startProp.getTime())) return null
-
         const endProp = end ? new Date(end) : new Date(new Date(start).setDate(new Date(start).getDate() + 7))
         endProp.setHours(23, 59, 59, 999)
         if (isNaN(endProp.getTime())) return null
-
         const viewStart = days[0]
-        const viewEnd = new Date(days[days.length - 1])
-        viewEnd.setHours(23, 59, 59, 999)
-
+        const viewEnd = new Date(days[days.length - 1]); viewEnd.setHours(23, 59, 59, 999)
         if (endProp < viewStart || startProp > viewEnd) return null
-
         const diffTime = startProp.getTime() - viewStart.getTime()
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
         const leftOffset = diffDays < 0 ? 0 : diffDays * DAY_WIDTH
-
         const effectiveStart = startProp < viewStart ? viewStart : startProp
         const effectiveEnd = endProp > viewEnd ? viewEnd : endProp
-        const visibleDurationTime = effectiveEnd.getTime() - effectiveStart.getTime()
-        const visibleDurationDays = Math.ceil(visibleDurationTime / (1000 * 60 * 60 * 24))
+        const visibleDurationDays = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24))
         const finalWidth = Math.max(1, visibleDurationDays) * DAY_WIDTH
-
         return { left: `${leftOffset}px`, width: `${finalWidth}px`, backgroundColor: color }
     }
 
     const handleSaveCycle = async (data: Partial<CropCycle>) => {
         const method = data.id ? 'PATCH' : 'POST'
-        const rawVarieties = data.varieties
-        const body = {
-            ...data,
-            varieties: typeof rawVarieties === 'string' ? JSON.parse(rawVarieties) : rawVarieties
-        }
+        const rawV = data.varieties
+        const body = { ...data, varieties: typeof rawV === 'string' ? JSON.parse(rawV) : rawV }
         try {
             const res = await fetch('/api/crop-cycle', {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
             })
             if (res.ok) { setIsModalOpen(false); fetchData() }
-        } catch (err) {
-            alert('保存に失敗しました')
-        }
+        } catch { alert('保存に失敗しました') }
     }
 
     const handleDeleteCycle = async (id: string) => {
@@ -168,9 +165,7 @@ export default function SchedulePage() {
         try {
             const res = await fetch(`/api/crop-cycle?id=${id}`, { method: 'DELETE' })
             if (res.ok) { setIsModalOpen(false); fetchData() }
-        } catch (err) {
-            alert('削除に失敗しました')
-        }
+        } catch { alert('削除に失敗しました') }
     }
 
     const openNewCycle = (gh: Greenhouse) => {
@@ -180,14 +175,12 @@ export default function SchedulePage() {
 
     const openEditCycle = (cycle: CropCycle) => {
         let varieties = cycle.varieties
-        if (typeof varieties === 'string') {
-            try { varieties = JSON.parse(varieties) } catch (e) { varieties = [] }
-        }
+        if (typeof varieties === 'string') { try { varieties = JSON.parse(varieties) } catch { varieties = [] } }
         setSelectedCycle({ ...cycle, varieties: varieties as Variety[] })
         setIsModalOpen(true)
     }
 
-    // Drag handlers for row reordering
+    // Drag handlers
     const onDragStart = (index: number) => { dragIndex.current = index }
     const onDragEnter = (index: number) => { setDragOver(index) }
     const onDragEnd = () => {
@@ -202,25 +195,23 @@ export default function SchedulePage() {
         setDragOver(null)
     }
 
-    // Touch drag handlers
+    // Touch drag
     const touchStartY = useRef<number>(0)
-    const touchRowHeight = useRef<number>(45)
     const onTouchStart = (e: React.TouchEvent, index: number) => {
         dragIndex.current = index
         touchStartY.current = e.touches[0].clientY
-        const row = (e.currentTarget as HTMLElement).closest('[data-row]') as HTMLElement
-        if (row) touchRowHeight.current = row.getBoundingClientRect().height
     }
     const onTouchMove = (e: React.TouchEvent) => {
         if (dragIndex.current === null) return
         const dy = e.touches[0].clientY - touchStartY.current
-        const steps = Math.round(dy / touchRowHeight.current)
-        const newOver = Math.max(0, Math.min(orderedIds.length - 1, dragIndex.current + steps))
-        setDragOver(newOver)
+        const steps = Math.round(dy / ROW_HEIGHT)
+        setDragOver(Math.max(0, Math.min(orderedIds.length - 1, dragIndex.current + steps)))
     }
     const onTouchEnd = () => { onDragEnd() }
 
     if (loading) return <div className={styles.container}>読み込み中...</div>
+
+    const todayStr = new Date().toDateString()
 
     return (
         <div className={styles.container}>
@@ -254,80 +245,85 @@ export default function SchedulePage() {
                 <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜消灯</span>
                 <span className={styles.legendItem}><span style={{ background: '#2196f3' }} className={styles.legendDot} />消灯〜収穫</span>
                 <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />収穫</span>
-                <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />土壌消毒</span>
+                <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
             </div>
 
-            <div className={styles.chartWrapper}>
-                <div className={styles.chartHeader}>
-                    <div className={styles.ghColumnHeader}>ハウス</div>
-                    <div className={styles.timelineHeader} style={{ width: days.length * DAY_WIDTH }}>
-                        {days.map(d => {
-                            const isToday = d.toDateString() === new Date().toDateString()
-                            return (
-                                <div key={d.toString()} className={`${styles.dayCell} ${isToday ? styles.todayCell : ''}`} style={{ width: DAY_WIDTH }}>
-                                    <div className={styles.dayLabel}>{d.getDate()}</div>
-                                    <div className={styles.wdLabel}>{['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}</div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                <div className={styles.chartBody}>
+            {/* Two-Panel Chart: left panel fixed, right panel scrolls horizontally */}
+            <div className={styles.chartLayout}>
+                {/* Left panel: Greenhouse names (fixed, no horizontal scroll) */}
+                <div className={styles.ghPanel} ref={ghPanelRef} onScroll={handleGhScroll}>
+                    <div className={styles.ghPanelHeader}>ハウス</div>
                     {orderedGreenhouses.map((gh, index) => (
                         <div
                             key={gh.id}
-                            data-row={index}
-                            className={`${styles.row} ${dragOver === index ? styles.rowDragOver : ''}`}
+                            className={`${styles.ghCell} ${dragOver === index ? styles.ghCellDragOver : ''}`}
                             draggable
                             onDragStart={() => onDragStart(index)}
                             onDragEnter={() => onDragEnter(index)}
                             onDragEnd={onDragEnd}
                             onDragOver={e => e.preventDefault()}
+                            onClick={() => openNewCycle(gh)}
                         >
-                            <div className={styles.ghColumn} onClick={() => openNewCycle(gh)}>
-                                <div
-                                    className={styles.dragHandle}
-                                    onTouchStart={(e) => { e.stopPropagation(); onTouchStart(e, index) }}
-                                    onTouchMove={onTouchMove}
-                                    onTouchEnd={onTouchEnd}
-                                    onClick={e => e.stopPropagation()}
-                                >
-                                    ⠿
-                                </div>
-                                <div className={styles.ghInfo}>
-                                    <div className={styles.ghName}>{gh.name}</div>
-                                    <div className={styles.ghArea}>{gh.areaAcre}a</div>
-                                </div>
+                            <div
+                                className={styles.dragHandle}
+                                onTouchStart={(e) => { e.stopPropagation(); onTouchStart(e, index) }}
+                                onTouchMove={onTouchMove}
+                                onTouchEnd={onTouchEnd}
+                                onClick={e => e.stopPropagation()}
+                            >⠿</div>
+                            <div className={styles.ghInfo}>
+                                <div className={styles.ghName}>{gh.name}</div>
+                                <div className={styles.ghArea}>{gh.areaAcre}a</div>
                             </div>
-                            <div className={styles.timelineRow} style={{ width: days.length * DAY_WIDTH }}>
-                                {days.map(d => {
-                                    const isToday = d.toDateString() === new Date().toDateString()
-                                    return <div key={d.toString()} className={`${styles.gridCell} ${isToday ? styles.todayGridCell : ''}`} style={{ width: DAY_WIDTH }} />
-                                })}
-                                {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
-                                    const renderBar = (start: string | null, end: string | null, color: string, label: string) => {
-                                        const style = getBarStyle(start, end, color)
-                                        if (!style) return null
-                                        return (
-                                            <div className={styles.bar} style={style} onClick={(e) => {
-                                                e.stopPropagation()
-                                                openEditCycle(cycle)
-                                            }}>
-                                                <span className={styles.barText}>{label}</span>
-                                            </div>
-                                        )
-                                    }
+                        </div>
+                    ))}
+                </div>
+
+                {/* Right panel: Timeline (scrolls both directions) */}
+                <div className={styles.timelinePanel} ref={timelinePanelRef} onScroll={handleTimelineScroll}>
+                    <div className={styles.timelineHeader} style={{ width: days.length * DAY_WIDTH }}>
+                        {days.map(d => (
+                            <div
+                                key={d.toString()}
+                                className={`${styles.dayCell} ${d.toDateString() === todayStr ? styles.todayCell : ''}`}
+                                style={{ width: DAY_WIDTH }}
+                            >
+                                <div className={styles.dayLabel}>{d.getDate()}</div>
+                                <div className={styles.wdLabel}>{['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {orderedGreenhouses.map((gh) => (
+                        <div key={gh.id} className={styles.timelineRow} style={{ width: days.length * DAY_WIDTH }}>
+                            {days.map(d => (
+                                <div
+                                    key={d.toString()}
+                                    className={`${styles.gridCell} ${d.toDateString() === todayStr ? styles.todayGridCell : ''}`}
+                                    style={{ width: DAY_WIDTH }}
+                                />
+                            ))}
+                            {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
+                                const renderBar = (start: string | null, end: string | null, color: string, label: string) => {
+                                    const style = getBarStyle(start, end, color)
+                                    if (!style) return null
                                     return (
-                                        <div key={cycle.id}>
-                                            {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', '消毒')}
-                                            {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', '定植')}
-                                            {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', '消灯')}
-                                            {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', '収穫')}
+                                        <div className={styles.bar} style={style} onClick={(e) => {
+                                            e.stopPropagation(); openEditCycle(cycle)
+                                        }}>
+                                            <span className={styles.barText}>{label}</span>
                                         </div>
                                     )
-                                })}
-                            </div>
+                                }
+                                return (
+                                    <div key={cycle.id}>
+                                        {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', '消毒')}
+                                        {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', '定植')}
+                                        {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', '消灯')}
+                                        {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', '収穫')}
+                                    </div>
+                                )
+                            })}
                         </div>
                     ))}
                 </div>
@@ -342,7 +338,7 @@ export default function SchedulePage() {
             />
 
             <p className={styles.hint}>
-                💡 <b>ハウス名</b>をクリックで新規作成、<b>バー</b>をクリックで詳細修正。<b>⠿ ハンドル</b>をドラッグで並び替え可能。
+                💡 <b>ハウス名</b>をタップで新規作成、<b>バー</b>をタップで詳細修正。<b>⠿</b>をドラッグで並び替え。
             </p>
         </div>
     )
