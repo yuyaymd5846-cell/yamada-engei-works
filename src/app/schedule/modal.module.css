@@ -37,6 +37,28 @@
     color: #333;
 }
 
+.headerTitle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.headerTitle span {
+    font-size: 1rem;
+    color: #555;
+}
+
+.batchInput {
+    width: 50px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    color: #333;
+}
+
 .headerActions {
     display: flex;
     gap: var(--spacing-sm);

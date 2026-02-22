@@ -86,7 +86,18 @@ export default function CycleModal({ isOpen, onClose, onSave, onDelete, initialD
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <h2>作付{data.batchNumber}</h2>
+                    <div className={styles.headerTitle}>
+                        <h2>作付</h2>
+                        <input
+                            type="number"
+                            min="1"
+                            value={data.batchNumber || ''}
+                            onChange={e => setData({ ...data, batchNumber: e.target.value ? Number(e.target.value) : null })}
+                            placeholder="何作目"
+                            className={styles.batchInput}
+                        />
+                        <span>作目</span>
+                    </div>
                     <div className={styles.headerActions}>
                         <button className={styles.copyBtn}>コピー</button>
                         {data.id && (

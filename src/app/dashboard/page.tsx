@@ -222,13 +222,16 @@ async function getTodaysWork() {
     const allGreenhouses = await prisma.greenhouse.findMany()
     const greenhouseMap = new Map(allGreenhouses.map(g => [g.id, g]))
 
-    // NEW: Fetch latest batch number for each greenhouse to pre-fill forms
-    const latestRecords = await prisma.workRecord.findMany({
-        orderBy: { date: 'desc' },
-        distinct: ['greenhouseName'],
-        select: { greenhouseName: true, batchNumber: true }
-    })
-    const lastBatchMap = new Map(latestRecords.map(r => [r.greenhouseName, r.batchNumber]))
+    // Get batch number from active CropCycles (schedule) for each greenhouse
+    // This ensures dashboard/QuickRecordForm uses the same batch number as the Gantt chart
+    const cycleBatchMap = new Map<string, number | null>()
+    for (const cycle of activeCycles) {
+        // Use the most relevant active cycle per greenhouse (latest planting date takes precedence)
+        const existing = cycleBatchMap.get(cycle.greenhouseId)
+        if (existing === undefined) {
+            cycleBatchMap.set(cycle.greenhouseId, cycle.batchNumber)
+        }
+    }
 
     for (const workName of allWorkNames) {
         const ghIds = suggestions.get(workName) || []
@@ -251,7 +254,7 @@ async function getTodaysWork() {
                         )
                         const thisHouseActualTime = thisHouseRecords.reduce((sum, r) => sum + r.spentTime, 0)
 
-                        const lastBatchNumber = lastBatchMap.get(greenhouse.name) || null
+                        const lastBatchNumber = cycleBatchMap.get(ghId) ?? null
 
                         // Create a specific target object
                         const singleTarget = {
@@ -313,7 +316,7 @@ async function getTodaysWork() {
                             targetTime = (greenhouse.areaAcre / 10) * timeVal
                         }
 
-                        const lastBatchNumber = lastBatchMap.get(greenhouse.name) || null
+                        const lastBatchNumber = cycleBatchMap.get(ghId) ?? null
                         targets.push({
                             greenhouseId: ghId,
                             greenhouseName: greenhouse.name,
