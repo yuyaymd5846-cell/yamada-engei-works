@@ -437,9 +437,11 @@ export default async function DashboardPage() {
 
                             <div className={styles.cardFooter}>
                                 <div className={styles.footerInfo}>
-                                    <span className={styles.standardTime}>
-                                        目安: {wt.manual.requiredTime10a}h/{(wt.manual.workName === 'かん水' || wt.manual.workName === '薬剤散布') ? '棟' : '10a'}
-                                    </span>
+                                    {wt.requiredTime10a > 0 ? (
+                                        <span className={styles.standardTime}>
+                                            目安: {wt.requiredTime10a}h/{(wt.manual.workName === 'かん水' || wt.manual.workName === '薬剤散布') ? '棟' : '10a'}
+                                        </span>
+                                    ) : <span />}
                                     <Link href={`/work/${wt.manual.id}`} className={styles.link}>📖 手順を見る</Link>
                                 </div>
                                 <QuickRecordForm
@@ -450,7 +452,7 @@ export default async function DashboardPage() {
                                         areaAcre: t.areaAcre,
                                         lastBatchNumber: t.lastBatchNumber
                                     }))}
-                                    defaultTime10a={wt.manual.requiredTime10a}
+                                    defaultTime10a={wt.requiredTime10a}
                                 />
                             </div>
                         </div>
