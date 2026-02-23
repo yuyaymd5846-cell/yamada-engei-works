@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Define public routes here if any
-    const publicRoutes = ['/api/db-check'] // Optional public API routes
+    const publicRoutes = ['/api/db-check', '/api/auth-debug']
     const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
     if (!user && !isPublicRoute) {
