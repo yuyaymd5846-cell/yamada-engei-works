@@ -336,6 +336,13 @@ export default function SchedulePage() {
                                 />
                             ))}
                             {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
+                                const diffDays = (a: string | null, b: string | null) => {
+                                    if (!a || !b) return null
+                                    const da = new Date(a), db = new Date(b)
+                                    if (isNaN(da.getTime()) || isNaN(db.getTime())) return null
+                                    return Math.round((db.getTime() - da.getTime()) / (1000 * 60 * 60 * 24))
+                                }
+
                                 const renderBar = (start: string | null, end: string | null, color: string, label: string) => {
                                     const style = getBarStyle(start, end, color)
                                     if (!style) return null
@@ -347,12 +354,25 @@ export default function SchedulePage() {
                                         </div>
                                     )
                                 }
+
+                                // Green: planting→lights off (show days)
+                                const greenDays = diffDays(cycle.plantingDate, cycle.lightsOffDate)
+                                const greenLabel = greenDays !== null ? `定植 ${greenDays}d` : '定植'
+
+                                // Blue: lights off→harvest start (show days)
+                                const blueDays = diffDays(cycle.lightsOffDate, cycle.harvestStart)
+                                const blueLabel = blueDays !== null ? `消灯 ${blueDays}d` : '消灯'
+
+                                // Yellow: harvest, show total planting→harvest end
+                                const totalDays = diffDays(cycle.plantingDate, cycle.harvestEnd)
+                                const yellowLabel = totalDays !== null ? `収穫 全${totalDays}d` : '収穫'
+
                                 return (
                                     <div key={cycle.id}>
                                         {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', '消毒')}
-                                        {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', '定植')}
-                                        {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', '消灯')}
-                                        {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', '収穫')}
+                                        {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', greenLabel)}
+                                        {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', blueLabel)}
+                                        {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', yellowLabel)}
                                     </div>
                                 )
                             })}
