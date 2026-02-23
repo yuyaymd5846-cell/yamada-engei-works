@@ -122,6 +122,8 @@ function normalizeGH(name: string) {
     return n.replace(/[-\s]/g, "")
 }
 
+import { cookies } from 'next/headers'
+
 export async function POST(request: Request) {
     try {
         const body = await request.json()
@@ -133,6 +135,10 @@ export async function POST(request: Request) {
         // Create lookup maps
         const ghByCanonical = new Map(allGreenhouses.map(g => [g.name, g]))
         const ghByNormalized = new Map(allGreenhouses.map(g => [normalizeGH(g.name), g]))
+
+        // Get workerName from cookie
+        const cookieStore = await cookies()
+        const workerName = cookieStore.get('yamada-username')?.value || null
 
         const results = []
 
@@ -165,6 +171,7 @@ export async function POST(request: Request) {
                     areaAcre: finalArea,
                     spentTime: Number(spentTime),
                     note: note ? String(note) : "",
+                    workerName: workerName,  // <--- ADDED WORKER NAME
                     photoUrl: data.photoUrl || null,
                     date: date ? new Date(date) : new Date()
                 }

@@ -14,6 +14,7 @@ interface WorkRecord {
     areaAcre: number
     spentTime: number
     note: string
+    workerName: string | null
     photoUrl: string | null
     date: string
 }
@@ -463,6 +464,7 @@ export default function WorkRecordsPage() {
                             <th onClick={() => handleSort('spentTime')} className={styles.sortable}>
                                 時間{sortIndicator('spentTime')}
                             </th>
+                            <th>記録者</th>
                             <th>備考</th>
                             <th>📷</th>
                             <th>操作</th>
@@ -522,6 +524,9 @@ export default function WorkRecordsPage() {
                                         ) : (
                                             record.note
                                         )}
+                                    </td>
+                                    <td>
+                                        {record.workerName || '-'}
                                     </td>
                                     <td>
                                         {record.photoUrl && (
@@ -612,6 +617,7 @@ export default function WorkRecordsPage() {
                                     <div className={styles.mobileCardBody}>
                                         <span>{record.greenhouseName}</span>
                                         {record.batchNumber && <span>第{record.batchNumber}作</span>}
+                                        {record.workerName && <span className={styles.mobileWorker}>🧔🏻 {record.workerName}</span>}
                                         {record.note && <span className={styles.mobileNote}>{record.note}</span>}
                                     </div>
                                     {record.photoUrl && (

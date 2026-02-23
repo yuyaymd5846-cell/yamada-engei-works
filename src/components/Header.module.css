@@ -66,6 +66,19 @@
     border-color: white;
 }
 
+.userSection {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: 1rem;
+}
+
+.userName {
+    color: #495057;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
 /* Hamburger Styles */
 .hamburger {
     display: none;

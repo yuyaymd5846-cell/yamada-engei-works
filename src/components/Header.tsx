@@ -5,7 +5,7 @@ import Link from 'next/link'
 import styles from './Header.module.css'
 import { logout } from '@/app/login/actions'
 
-export default function Header() {
+export default function Header({ userName }: { userName?: string }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
@@ -35,9 +35,13 @@ export default function Header() {
                 <Link href="/greenhouses" className={styles.navLink} onClick={closeMenu}>ハウス管理</Link>
                 <Link href="/rotation" className={styles.navLink} onClick={closeMenu}>薬剤ローテーション</Link>
                 <Link href="/analysis" className={styles.navLink} onClick={closeMenu}>分析</Link>
-                <form action={logout} className={styles.logoutForm}>
-                    <button type="submit" className={styles.logoutButton}>ログアウト</button>
-                </form>
+
+                <div className={styles.userSection}>
+                    {userName && <span className={styles.userName}>{userName}さん</span>}
+                    <form action={logout} className={styles.logoutForm}>
+                        <button type="submit" className={styles.logoutButton}>ログアウト</button>
+                    </form>
+                </div>
             </nav>
 
             {isMenuOpen && <div className={styles.overlay} onClick={closeMenu}></div>}

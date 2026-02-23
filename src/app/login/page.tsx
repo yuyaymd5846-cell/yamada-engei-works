@@ -28,6 +28,20 @@ export default function LoginPage() {
                     )}
 
                     <div className={styles.inputGroup}>
+                        <label htmlFor="workerName" className={styles.label}>
+                            お名前
+                        </label>
+                        <input
+                            id="workerName"
+                            name="workerName"
+                            type="text"
+                            required
+                            className={styles.input}
+                            placeholder="山田 太郎"
+                        />
+                    </div>
+
+                    <div className={styles.inputGroup}>
                         <label htmlFor="password" className={styles.label}>
                             パスワード
                         </label>
