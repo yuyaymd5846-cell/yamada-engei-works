@@ -20,7 +20,7 @@ export async function login(formData: FormData) {
 
     if (error) {
         console.error('Login error:', error.message)
-        return { error: 'ログインに失敗しました。認証情報を確認してください' }
+        return { error: `ログインに失敗しました: ${error.message}` }
     }
 
     redirect('/dashboard')
