@@ -384,7 +384,7 @@ export default function SchedulePage() {
             <div className={styles.chartLayout}>
                 {/* Left panel: Greenhouse names (fixed, no horizontal scroll) */}
                 <div className={styles.ghPanel} ref={ghPanelRef} onScroll={handleGhScroll}>
-                    <div className={styles.ghPanelHeader}>ハウス</div>
+                    <div className={`${styles.ghPanelHeader} ${viewMode === 'year' ? styles.ghPanelHeaderCompact : ''}`}>ハウス</div>
                     {orderedGreenhouses.map((gh, index) => (
                         <div
                             key={gh.id}
@@ -478,19 +478,28 @@ export default function SchedulePage() {
 
                                 // Green: planting→lights off (show days)
                                 const greenDays = diffDays(cycle.plantingDate, cycle.lightsOffDate)
-                                const greenLabel = greenDays !== null ? `定植 ${greenDays}d` : '定植'
+                                const greenLabel = viewMode === 'year'
+                                    ? (greenDays !== null ? `${greenDays}d` : '')
+                                    : (greenDays !== null ? `定植 ${greenDays}d` : '定植')
 
                                 // Blue: lights off→harvest start (show days)
                                 const blueDays = diffDays(cycle.lightsOffDate, cycle.harvestStart)
-                                const blueLabel = blueDays !== null ? `消灯 ${blueDays}d` : '消灯'
+                                const blueLabel = viewMode === 'year'
+                                    ? (blueDays !== null ? `${blueDays}d` : '')
+                                    : (blueDays !== null ? `消灯 ${blueDays}d` : '消灯')
 
                                 // Yellow: harvest, show total planting→harvest end
                                 const totalDays = diffDays(cycle.plantingDate, cycle.harvestEnd)
-                                const yellowLabel = totalDays !== null ? `収穫 全${totalDays}d` : '収穫'
+                                const yellowLabel = viewMode === 'year'
+                                    ? (totalDays !== null ? `全${totalDays}d` : '')
+                                    : (totalDays !== null ? `収穫 全${totalDays}d` : '収穫')
+
+                                // Grey: disinfection
+                                const disinfectLabel = viewMode === 'year' ? '' : '消毒'
 
                                 return (
                                     <div key={cycle.id}>
-                                        {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', '消毒')}
+                                        {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', disinfectLabel)}
                                         {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', greenLabel)}
                                         {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', blueLabel)}
                                         {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', yellowLabel)}
