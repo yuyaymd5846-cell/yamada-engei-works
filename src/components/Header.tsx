@@ -3,9 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import styles from './Header.module.css'
+import { logout } from '@/app/login/actions'
+import type { User } from '@supabase/supabase-js'
 
-export default function Header() {
+export default function Header({ user }: { user: User | null }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+    // Do not show header on login page (no user)
+    if (!user) return null
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
     const closeMenu = () => setIsMenuOpen(false)
@@ -34,6 +39,9 @@ export default function Header() {
                 <Link href="/greenhouses" className={styles.navLink} onClick={closeMenu}>ハウス管理</Link>
                 <Link href="/rotation" className={styles.navLink} onClick={closeMenu}>薬剤ローテーション</Link>
                 <Link href="/analysis" className={styles.navLink} onClick={closeMenu}>分析</Link>
+                <form action={logout} className={styles.logoutForm}>
+                    <button type="submit" className={styles.logoutButton}>ログアウト</button>
+                </form>
             </nav>
 
             {isMenuOpen && <div className={styles.overlay} onClick={closeMenu}></div>}
