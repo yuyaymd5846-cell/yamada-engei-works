@@ -328,13 +328,6 @@ export default function SchedulePage() {
 
     if (loading) return <div className={styles.container}>読み込み中...</div>
 
-    // Month jump helper
-    const jumpToMonth = (month: number) => {
-        const d = new Date(currentDate.getFullYear(), month, 1)
-        d.setHours(0, 0, 0, 0)
-        setCurrentDate(d)
-    }
-
     // Navigation step size
     const navStep = viewMode === 'year' ? 90 : viewMode === 'month' ? 30 : 7
 
@@ -379,19 +372,6 @@ export default function SchedulePage() {
                 </div>
             </header>
 
-            {/* Month quick-jump bar */}
-            <div className={styles.monthBar}>
-                {Array.from({ length: 12 }, (_, i) => (
-                    <button
-                        key={i}
-                        className={`${styles.monthBtn} ${currentDate.getMonth() === i ? styles.monthBtnActive : ''}`}
-                        onClick={() => jumpToMonth(i)}
-                    >
-                        {i + 1}月
-                    </button>
-                ))}
-            </div>
-
             {/* Legend */}
             <div className={styles.legend}>
                 <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜消灯</span>
@@ -433,39 +413,35 @@ export default function SchedulePage() {
 
                 {/* Right panel: Timeline (scrolls both directions) */}
                 <div className={styles.timelinePanel} ref={timelinePanelRef} onScroll={handleTimelineScroll}>
-                    {/* Year view: month separator labels */}
-                    {viewMode === 'year' && (
-                        <div className={styles.yearMonthLabels} style={{ width: days.length * DAY_WIDTH }}>
-                            {monthSeparators.map((sep, i) => (
-                                <div key={i} className={styles.yearMonthLabel} style={{ left: sep.left }}>
-                                    {sep.label}
+                    {/* Header: year view shows only month labels; week/month show day cells */}
+                    {viewMode === 'year' ? (
+                        <div className={styles.yearMonthHeader} style={{ width: days.length * DAY_WIDTH }}>
+                            {monthSeparators.map((sep, i) => {
+                                const nextLeft = i < monthSeparators.length - 1 ? monthSeparators[i + 1].left : days.length * DAY_WIDTH
+                                const width = nextLeft - sep.left
+                                return (
+                                    <div key={i} className={styles.yearMonthCell} style={{ left: sep.left, width }}>
+                                        {sep.label}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className={styles.timelineHeader} style={{ width: days.length * DAY_WIDTH }}>
+                            {days.map(d => (
+                                <div
+                                    key={d.toString()}
+                                    className={getDayClass(d)}
+                                    style={{ width: DAY_WIDTH }}
+                                >
+                                    <div className={styles.dayLabel}>{d.getDate()}</div>
+                                    <div className={`${styles.wdLabel} ${d.getDay() === 0 || isJapaneseHoliday(d) ? styles.wdSunday : d.getDay() === 6 ? styles.wdSaturday : ''}`}>
+                                        {['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     )}
-                    <div className={styles.timelineHeader} style={{ width: days.length * DAY_WIDTH }}>
-                        {viewMode !== 'year' ? days.map(d => (
-                            <div
-                                key={d.toString()}
-                                className={getDayClass(d)}
-                                style={{ width: DAY_WIDTH }}
-                            >
-                                <div className={styles.dayLabel}>{d.getDate()}</div>
-                                <div className={`${styles.wdLabel} ${d.getDay() === 0 || isJapaneseHoliday(d) ? styles.wdSunday : d.getDay() === 6 ? styles.wdSaturday : ''}`}>
-                                    {['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}
-                                </div>
-                            </div>
-                        )) : (
-                            // Year view: thin colored strips
-                            days.map(d => (
-                                <div
-                                    key={d.toString()}
-                                    className={getDayClass(d)}
-                                    style={{ width: DAY_WIDTH, height: 20, padding: 0 }}
-                                />
-                            ))
-                        )}
-                    </div>
 
                     {orderedGreenhouses.map((gh) => (
                         <div key={gh.id} className={styles.timelineRow} style={{ width: days.length * DAY_WIDTH }}>
