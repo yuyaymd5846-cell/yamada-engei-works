@@ -301,7 +301,17 @@
 }
 
 .todayCell {
-    background: #d4edda !important;
+    background: #c8e6c9 !important;
+    border-left: 2px solid #4caf50;
+    border-right: 2px solid #4caf50;
+}
+
+.saturdayCell {
+    background: #e3f2fd !important;
+}
+
+.sundayCell {
+    background: #ffebee !important;
 }
 
 .dayLabel {
@@ -312,6 +322,16 @@
 .wdLabel {
     font-size: 0.55rem;
     color: #666;
+}
+
+.wdSaturday {
+    color: #1565c0;
+    font-weight: 700;
+}
+
+.wdSunday {
+    color: #c62828;
+    font-weight: 700;
 }
 
 .timelineRow {
@@ -328,7 +348,29 @@
 }
 
 .todayGridCell {
-    background: #fafff8;
+    background: #e8f5e9 !important;
+    border-left: 1px solid #a5d6a7;
+    border-right: 1px solid #a5d6a7;
+}
+
+.saturdayGridCell {
+    background: #f5f9ff;
+}
+
+.sundayGridCell {
+    background: #fff5f5;
+}
+
+/* Today vertical marker line */
+.todayMarker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e53935;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.7;
 }
 
 @media (min-width: 768px) {

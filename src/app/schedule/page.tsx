@@ -33,6 +33,45 @@ interface Greenhouse {
 
 const LS_ORDER_KEY = 'gh-row-order'
 
+// Japanese national holidays (fixed dates + equinox approximations)
+function isJapaneseHoliday(d: Date): boolean {
+    const m = d.getMonth() + 1
+    const day = d.getDate()
+    const y = d.getFullYear()
+    const wd = d.getDay()
+
+    // Fixed holidays
+    const fixed: Record<string, number[]> = {
+        '1': [1, 2, 3], '2': [11, 23], '4': [29], '5': [3, 4, 5],
+        '7': [21], '8': [11], '9': [23], '10': [14],
+        '11': [3, 23], '12': [31]
+    }
+    if (fixed[String(m)]?.includes(day)) return true
+
+    // Happy Monday holidays
+    const nthMon = (m2: number, n: number) => {
+        const first = new Date(y, m2 - 1, 1)
+        const firstMon = (8 - first.getDay()) % 7 || 7
+        return firstMon + (n - 1) * 7
+    }
+    if (m === 1 && day === nthMon(1, 2)) return true // Coming of Age
+    if (m === 7 && day === nthMon(7, 3)) return true // Marine Day
+    if (m === 9 && day === nthMon(9, 3)) return true // Respect for Aged
+    if (m === 10 && day === nthMon(10, 2)) return true // Sports Day
+
+    // Vernal/Autumnal equinox (approximation)
+    if (m === 3 && day === Math.floor(20.8431 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return true
+    if (m === 9 && day === Math.floor(23.2488 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4))) return true
+
+    // Substitute holiday: if a holiday falls on Sunday, the next Monday is a holiday
+    if (wd === 1) {
+        const yesterday = new Date(y, m - 1, day - 1)
+        if (yesterday.getDay() === 0 && isJapaneseHoliday(yesterday)) return true
+    }
+
+    return false
+}
+
 export default function SchedulePage() {
     const [cycles, setCycles] = useState<CropCycle[]>([])
     const [greenhouses, setGreenhouses] = useState<Greenhouse[]>([])
@@ -116,9 +155,16 @@ export default function SchedulePage() {
     const getDaysInView = () => {
         const days: Date[] = []
         const start = new Date(currentDate); start.setHours(0, 0, 0, 0)
-        const count = viewMode === 'week' ? 7 : 30
-        for (let i = 0; i < count; i++) {
-            const d = new Date(start); d.setDate(start.getDate() + i); days.push(d)
+        if (viewMode === 'month') {
+            // Show 5 days before + 35 days after = 40 days total for context
+            start.setDate(start.getDate() - 5)
+            for (let i = 0; i < 40; i++) {
+                const d = new Date(start); d.setDate(start.getDate() + i); days.push(d)
+            }
+        } else {
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(start); d.setDate(start.getDate() + i); days.push(d)
+            }
         }
         return days
     }
@@ -127,6 +173,26 @@ export default function SchedulePage() {
     const DAY_WIDTH = viewMode === 'month' ? 30 : 100
     const ROW_HEIGHT = 48
     const ROW_HEIGHT_DESKTOP = 60
+
+    // Helpers for cell class
+    const getDayClass = (d: Date, isGrid = false) => {
+        const todayMatch = d.toDateString() === todayStr
+        const dow = d.getDay()
+        const holiday = isJapaneseHoliday(d)
+        const classes: string[] = []
+        if (isGrid) {
+            classes.push(styles.gridCell)
+            if (todayMatch) classes.push(styles.todayGridCell)
+            if (dow === 0 || holiday) classes.push(styles.sundayGridCell)
+            else if (dow === 6) classes.push(styles.saturdayGridCell)
+        } else {
+            classes.push(styles.dayCell)
+            if (todayMatch) classes.push(styles.todayCell)
+            if (dow === 0 || holiday) classes.push(styles.sundayCell)
+            else if (dow === 6) classes.push(styles.saturdayCell)
+        }
+        return classes.join(' ')
+    }
 
     const getBarStyle = (start: string | null, end: string | null, color: string) => {
         if (!start) return null
@@ -245,6 +311,10 @@ export default function SchedulePage() {
 
     const todayStr = new Date().toDateString()
 
+    // Calculate today's offset for the marker line
+    const todayIndex = days.findIndex(d => d.toDateString() === todayStr)
+    const todayMarkerLeft = todayIndex >= 0 ? todayIndex * DAY_WIDTH + DAY_WIDTH / 2 : -1
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -317,11 +387,13 @@ export default function SchedulePage() {
                         {days.map(d => (
                             <div
                                 key={d.toString()}
-                                className={`${styles.dayCell} ${d.toDateString() === todayStr ? styles.todayCell : ''}`}
+                                className={getDayClass(d)}
                                 style={{ width: DAY_WIDTH }}
                             >
                                 <div className={styles.dayLabel}>{d.getDate()}</div>
-                                <div className={styles.wdLabel}>{['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}</div>
+                                <div className={`${styles.wdLabel} ${d.getDay() === 0 || isJapaneseHoliday(d) ? styles.wdSunday : d.getDay() === 6 ? styles.wdSaturday : ''}`}>
+                                    {['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -331,10 +403,14 @@ export default function SchedulePage() {
                             {days.map(d => (
                                 <div
                                     key={d.toString()}
-                                    className={`${styles.gridCell} ${d.toDateString() === todayStr ? styles.todayGridCell : ''}`}
+                                    className={getDayClass(d, true)}
                                     style={{ width: DAY_WIDTH }}
                                 />
                             ))}
+                            {/* Today marker line */}
+                            {todayMarkerLeft >= 0 && (
+                                <div className={styles.todayMarker} style={{ left: todayMarkerLeft }} />
+                            )}
                             {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
                                 const diffDays = (a: string | null, b: string | null) => {
                                     if (!a || !b) return null
