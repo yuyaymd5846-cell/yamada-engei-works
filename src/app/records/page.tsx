@@ -297,7 +297,7 @@ export default function WorkRecordsPage() {
     const exportToCSV = () => {
         const target = filteredRecords.length > 0 ? sortedRecords : records
         if (target.length === 0) return
-        const headers = ['日付', '作業名', 'ハウス', '作目', '面積', '時間', '備考']
+        const headers = ['日付', '作業名', 'ハウス', '作目', '面積', '時間', '記録者', '備考']
         const csvRows = [
             headers.join(','),
             ...target.map(r => [
@@ -307,6 +307,7 @@ export default function WorkRecordsPage() {
                 r.batchNumber || '',
                 r.areaAcre,
                 r.spentTime,
+                `"${r.workerName || ''}"`,
                 `"${r.note?.replace(/"/g, '""') || ''}"`
             ].join(','))
         ]
