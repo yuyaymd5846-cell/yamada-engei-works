@@ -312,8 +312,6 @@ export default function SchedulePage() {
     }
     const onTouchEnd = () => { onDragEnd() }
 
-    if (loading) return <div className={styles.container}>読み込み中...</div>
-
     const todayStr = new Date().toDateString()
 
     // Calculate today's offset for the marker line
@@ -327,6 +325,8 @@ export default function SchedulePage() {
             timelinePanelRef.current.scrollLeft = Math.max(0, todayMarkerLeft - panelWidth / 3)
         }
     }, [viewMode, loading])
+
+    if (loading) return <div className={styles.container}>読み込み中...</div>
 
     // Month jump helper
     const jumpToMonth = (month: number) => {
