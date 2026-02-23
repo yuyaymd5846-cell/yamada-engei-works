@@ -4,7 +4,6 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import styles from './layout.module.css'
 import Header from '@/components/Header'
-import { createClient } from '@/utils/supabase/server'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,19 +12,16 @@ export const metadata: Metadata = {
   description: 'Standardized work manual and decision support system',
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
   return (
     <html lang="ja">
       <body className={inter.className}>
         <div className={styles.container}>
-          <Header user={user} />
+          <Header />
           <main className={styles.main}>
             {children}
           </main>

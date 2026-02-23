@@ -6,7 +6,7 @@ import styles from './login.module.css'
 
 export default function LoginPage() {
     const [state, formAction, isPending] = useActionState(
-        async (prevState: { error?: string } | null, formData: FormData) => {
+        async (_prevState: { error?: string } | null, formData: FormData) => {
             return await login(formData)
         },
         null
@@ -17,7 +17,7 @@ export default function LoginPage() {
             <div className={styles.card}>
                 <div className={styles.header}>
                     <h1 className={styles.title}>山田園芸</h1>
-                    <p className={styles.subtitle}>作業マニュアルDB ログイン</p>
+                    <p className={styles.subtitle}>作業マニュアルDB</p>
                 </div>
 
                 <form action={formAction} className={styles.form}>
@@ -26,20 +26,6 @@ export default function LoginPage() {
                             {state.error}
                         </div>
                     )}
-
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="email" className={styles.label}>
-                            メールアドレス
-                        </label>
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            className={styles.input}
-                            placeholder="example@yamada-engei.com"
-                        />
-                    </div>
 
                     <div className={styles.inputGroup}>
                         <label htmlFor="password" className={styles.label}>
@@ -51,7 +37,7 @@ export default function LoginPage() {
                             type="password"
                             required
                             className={styles.input}
-                            placeholder="••••••••"
+                            placeholder="パスワードを入力"
                         />
                     </div>
 

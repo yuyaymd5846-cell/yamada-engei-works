@@ -4,13 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import styles from './Header.module.css'
 import { logout } from '@/app/login/actions'
-import type { User } from '@supabase/supabase-js'
 
-export default function Header({ user }: { user: User | null }) {
+export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-    // Do not show header on login page (no user)
-    if (!user) return null
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
     const closeMenu = () => setIsMenuOpen(false)
