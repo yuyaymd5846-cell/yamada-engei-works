@@ -11,16 +11,29 @@ export async function login(formData: FormData) {
         return { error: 'メールアドレスとパスワードを入力してください' }
     }
 
-    const supabase = await createClient()
+    // Debug: check env vars
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) {
+        return { error: `環境変数未設定: URL=${url ? '✅' : '❌'}, KEY=${key ? '✅' : '❌'}` }
+    }
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    })
+    try {
+        const supabase = await createClient()
 
-    if (error) {
-        console.error('Login error:', error.message)
-        return { error: `ログインに失敗しました: ${error.message}` }
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        })
+
+        if (error) {
+            console.error('Login error:', error.message)
+            return { error: `ログインに失敗しました: ${error.message}` }
+        }
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error('Login exception:', msg)
+        return { error: `接続エラー: ${msg} (URL: ${url.substring(0, 30)}...)` }
     }
 
     redirect('/dashboard')
