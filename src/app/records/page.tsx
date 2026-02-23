@@ -514,6 +514,9 @@ export default function WorkRecordsPage() {
                                             record.spentTime
                                         )}
                                     </td>
+                                    <td>
+                                        {record.workerName || '-'}
+                                    </td>
                                     <td className={styles.noteCell}>
                                         {isEditing ? (
                                             <textarea
@@ -524,9 +527,6 @@ export default function WorkRecordsPage() {
                                         ) : (
                                             record.note
                                         )}
-                                    </td>
-                                    <td>
-                                        {record.workerName || '-'}
                                     </td>
                                     <td>
                                         {record.photoUrl && (
