@@ -87,7 +87,7 @@ export default function SchedulePage() {
     const [currentDate, setCurrentDate] = useState(() => {
         const d = new Date(); d.setHours(0, 0, 0, 0); return d
     })
-    const [viewMode, setViewMode] = useState<'week' | 'month'>('month')
+    const [viewMode, setViewMode] = useState<'week' | 'month' | 'year'>('month')
 
     // Refs for synced scrolling
     const ghPanelRef = useRef<HTMLDivElement>(null)
@@ -155,8 +155,13 @@ export default function SchedulePage() {
     const getDaysInView = () => {
         const days: Date[] = []
         const start = new Date(currentDate); start.setHours(0, 0, 0, 0)
-        if (viewMode === 'month') {
-            // Show 5 days before + 35 days after = 40 days total for context
+        if (viewMode === 'year') {
+            // Start from Jan 1 of the current year
+            start.setMonth(0, 1)
+            for (let i = 0; i < 365; i++) {
+                const d = new Date(start); d.setDate(start.getDate() + i); days.push(d)
+            }
+        } else if (viewMode === 'month') {
             start.setDate(start.getDate() - 5)
             for (let i = 0; i < 40; i++) {
                 const d = new Date(start); d.setDate(start.getDate() + i); days.push(d)
@@ -170,7 +175,7 @@ export default function SchedulePage() {
     }
 
     const days = getDaysInView()
-    const DAY_WIDTH = viewMode === 'month' ? 30 : 100
+    const DAY_WIDTH = viewMode === 'year' ? 3 : viewMode === 'month' ? 30 : 100
     const ROW_HEIGHT = 48
     const ROW_HEIGHT_DESKTOP = 60
 
@@ -315,6 +320,37 @@ export default function SchedulePage() {
     const todayIndex = days.findIndex(d => d.toDateString() === todayStr)
     const todayMarkerLeft = todayIndex >= 0 ? todayIndex * DAY_WIDTH + DAY_WIDTH / 2 : -1
 
+    // Auto-scroll to today on mount / view change
+    useEffect(() => {
+        if (timelinePanelRef.current && todayMarkerLeft >= 0) {
+            const panelWidth = timelinePanelRef.current.clientWidth
+            timelinePanelRef.current.scrollLeft = Math.max(0, todayMarkerLeft - panelWidth / 3)
+        }
+    }, [viewMode, loading])
+
+    // Month jump helper
+    const jumpToMonth = (month: number) => {
+        const d = new Date(currentDate.getFullYear(), month, 1)
+        d.setHours(0, 0, 0, 0)
+        setCurrentDate(d)
+    }
+
+    // Navigation step size
+    const navStep = viewMode === 'year' ? 90 : viewMode === 'month' ? 30 : 7
+
+    // Month separator positions for year view
+    const monthSeparators = viewMode === 'year' ? (() => {
+        const seps: { left: number; label: string }[] = []
+        let prevMonth = -1
+        days.forEach((d, i) => {
+            if (d.getMonth() !== prevMonth) {
+                seps.push({ left: i * DAY_WIDTH, label: `${d.getMonth() + 1}月` })
+                prevMonth = d.getMonth()
+            }
+        })
+        return seps
+    })() : []
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -325,22 +361,36 @@ export default function SchedulePage() {
                     <div className={styles.navGroup}>
                         <button onClick={() => {
                             const d = new Date(currentDate)
-                            d.setDate(d.getDate() - (viewMode === 'month' ? 30 : 7))
+                            d.setDate(d.getDate() - navStep)
                             setCurrentDate(d)
                         }}>◀</button>
                         <span>{currentDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}</span>
                         <button onClick={() => {
                             const d = new Date(currentDate)
-                            d.setDate(d.getDate() + (viewMode === 'month' ? 30 : 7))
+                            d.setDate(d.getDate() + navStep)
                             setCurrentDate(d)
                         }}>▶</button>
                     </div>
                     <div className={styles.viewToggle}>
                         <button className={viewMode === 'week' ? styles.active : ''} onClick={() => setViewMode('week')}>週</button>
                         <button className={viewMode === 'month' ? styles.active : ''} onClick={() => setViewMode('month')}>月</button>
+                        <button className={viewMode === 'year' ? styles.active : ''} onClick={() => setViewMode('year')}>年</button>
                     </div>
                 </div>
             </header>
+
+            {/* Month quick-jump bar */}
+            <div className={styles.monthBar}>
+                {Array.from({ length: 12 }, (_, i) => (
+                    <button
+                        key={i}
+                        className={`${styles.monthBtn} ${currentDate.getMonth() === i ? styles.monthBtnActive : ''}`}
+                        onClick={() => jumpToMonth(i)}
+                    >
+                        {i + 1}月
+                    </button>
+                ))}
+            </div>
 
             {/* Legend */}
             <div className={styles.legend}>
@@ -383,8 +433,18 @@ export default function SchedulePage() {
 
                 {/* Right panel: Timeline (scrolls both directions) */}
                 <div className={styles.timelinePanel} ref={timelinePanelRef} onScroll={handleTimelineScroll}>
+                    {/* Year view: month separator labels */}
+                    {viewMode === 'year' && (
+                        <div className={styles.yearMonthLabels} style={{ width: days.length * DAY_WIDTH }}>
+                            {monthSeparators.map((sep, i) => (
+                                <div key={i} className={styles.yearMonthLabel} style={{ left: sep.left }}>
+                                    {sep.label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <div className={styles.timelineHeader} style={{ width: days.length * DAY_WIDTH }}>
-                        {days.map(d => (
+                        {viewMode !== 'year' ? days.map(d => (
                             <div
                                 key={d.toString()}
                                 className={getDayClass(d)}
@@ -395,7 +455,16 @@ export default function SchedulePage() {
                                     {['日', '月', '火', '水', '木', '金', '土'][d.getDay()]}
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            // Year view: thin colored strips
+                            days.map(d => (
+                                <div
+                                    key={d.toString()}
+                                    className={getDayClass(d)}
+                                    style={{ width: DAY_WIDTH, height: 20, padding: 0 }}
+                                />
+                            ))
+                        )}
                     </div>
 
                     {orderedGreenhouses.map((gh) => (
