@@ -53,6 +53,7 @@ model Greenhouse {
   name      String   // ハウス名称 (例: 1号ハウス, A棟)
   areaAcre              Float    @map("area_acre") // 面積 (a: アール)
   pesticideRotationIndex Int      @default(1) @map("pesticide_rotation_index")
+  orderIndex            Int      @default(0) @map("order_index") // 並び順
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

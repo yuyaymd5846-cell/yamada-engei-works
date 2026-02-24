@@ -5,7 +5,10 @@ import { NextResponse } from 'next/server'
 export async function GET() {
     try {
         const greenhouses = await prisma.greenhouse.findMany({
-            orderBy: { name: 'asc' }
+            orderBy: [
+                { orderIndex: 'asc' },
+                { name: 'asc' }
+            ]
         })
         return NextResponse.json(greenhouses)
     } catch (error) {

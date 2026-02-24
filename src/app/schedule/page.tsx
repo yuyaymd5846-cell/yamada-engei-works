@@ -109,13 +109,9 @@ export default function SchedulePage() {
 
             if (Array.isArray(ghRes)) {
                 setGreenhouses(ghRes)
-                const saved = JSON.parse(localStorage.getItem(LS_ORDER_KEY) || '[]') as string[]
+                // Use the order from the database directly
                 const allIds = ghRes.map((g: Greenhouse) => g.id)
-                const merged = [
-                    ...saved.filter((id: string) => allIds.includes(id)),
-                    ...allIds.filter((id: string) => !saved.includes(id))
-                ]
-                setOrderedIds(merged)
+                setOrderedIds(allIds)
             } else { console.error("Greenhouses not array:", ghRes); setGreenhouses([]) }
         } catch (err) { console.error("Fetch error:", err) }
         finally { setLoading(false) }
@@ -292,7 +288,13 @@ export default function SchedulePage() {
             const [moved] = newOrder.splice(dragIndex.current, 1)
             newOrder.splice(dragOver, 0, moved)
             setOrderedIds(newOrder)
-            localStorage.setItem(LS_ORDER_KEY, JSON.stringify(newOrder))
+
+            // Save the new order to the database
+            fetch('/api/greenhouse/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderedIds: newOrder })
+            }).catch(err => console.error("Failed to save new order:", err))
         }
         dragIndex.current = null
         setDragOver(null)
