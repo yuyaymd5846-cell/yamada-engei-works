@@ -192,6 +192,14 @@ async function getTodaysWork() {
                 addTarget('ハダニ特別防除', cycle.greenhouseId)
             }
         }
+
+        // 11. ビーナイン散布（B9） (0, 7, 14, 21 days after lightsOffDate)
+        if (loDate) {
+            const diffDays = Math.floor((todayUTC.getTime() - loDate.getTime()) / (1000 * 60 * 60 * 24))
+            if ([0, 7, 14, 21].includes(diffDays)) {
+                addTarget('ビーナイン散布（B9）', cycle.greenhouseId)
+            }
+        }
     }
 
     // Always suggest "採穂", "かん水", "栽培管理" and "薬剤散布" as routine
