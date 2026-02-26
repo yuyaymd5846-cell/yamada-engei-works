@@ -92,7 +92,6 @@ export default function SchedulePage() {
         const d = new Date(); d.setHours(0, 0, 0, 0); return d
     })
     const [viewMode, setViewMode] = useState<'week' | 'month' | 'year'>('month')
-    const [listTab, setListTab] = useState<'standard' | 'parent'>('standard')
 
     // Refs for synced scrolling
     const ghPanelRef = useRef<HTMLDivElement>(null)
@@ -242,7 +241,7 @@ export default function SchedulePage() {
 
     const openNewCycle = (gh: Greenhouse) => {
         // Find previous cycles for this greenhouse to pre-fill varieties
-        const ghCycles = cycles.filter(c => c.greenhouseId === gh.id && (listTab === 'parent' ? c.isParentStock : !c.isParentStock))
+        const ghCycles = cycles.filter(c => c.greenhouseId === gh.id)
         let prevVarieties: Variety[] = [{ name: '', count: 0 }]
         let nextBatch = 1
 
@@ -273,7 +272,7 @@ export default function SchedulePage() {
             greenhouseName: gh.name,
             batchNumber: nextBatch,
             varieties: prevVarieties,
-            isParentStock: listTab === 'parent'
+            isParentStock: false
         })
         setIsModalOpen(true)
     }
@@ -372,10 +371,6 @@ export default function SchedulePage() {
                             setCurrentDate(d)
                         }}>▶</button>
                     </div>
-                    <div className={styles.viewToggle} style={{ marginLeft: 16, marginRight: 16 }}>
-                        <button className={listTab === 'standard' ? styles.active : ''} onClick={() => setListTab('standard')}>本圃</button>
-                        <button className={listTab === 'parent' ? styles.active : ''} onClick={() => setListTab('parent')}>親株</button>
-                    </div>
                     <div className={styles.viewToggle}>
                         <button className={viewMode === 'week' ? styles.active : ''} onClick={() => setViewMode('week')}>週</button>
                         <button className={viewMode === 'month' ? styles.active : ''} onClick={() => setViewMode('month')}>月</button>
@@ -386,21 +381,11 @@ export default function SchedulePage() {
 
             {/* Legend */}
             <div className={styles.legend}>
-                {listTab === 'standard' ? (
-                    <>
-                        <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜消灯</span>
-                        <span className={styles.legendItem}><span style={{ background: '#2196f3' }} className={styles.legendDot} />消灯〜収穫</span>
-                        <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />収穫</span>
-                        <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
-                    </>
-                ) : (
-                    <>
-                        <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜摘芯</span>
-                        <span className={styles.legendItem}><span style={{ background: '#fd7e14' }} className={styles.legendDot} />摘芯〜採穂</span>
-                        <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />採穂</span>
-                        <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
-                    </>
-                )}
+                <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜消灯/摘芯</span>
+                <span className={styles.legendItem}><span style={{ background: '#2196f3' }} className={styles.legendDot} />消灯〜収穫</span>
+                <span className={styles.legendItem}><span style={{ background: '#fd7e14' }} className={styles.legendDot} />摘芯〜採穂</span>
+                <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />収穫/採穂</span>
+                <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
             </div>
 
             {/* Two-Panel Chart: left panel fixed, right panel scrolls horizontally */}
@@ -479,7 +464,7 @@ export default function SchedulePage() {
                             {todayMarkerLeft >= 0 && (
                                 <div className={styles.todayMarker} style={{ left: todayMarkerLeft }} />
                             )}
-                            {cycles.filter(c => c.greenhouseId === gh.id && (listTab === 'parent' ? c.isParentStock : !c.isParentStock)).map(cycle => {
+                            {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
                                 const diffDays = (a: string | null | undefined, b: string | null | undefined) => {
                                     if (!a || !b) return null
                                     const da = new Date(a), db = new Date(b)

@@ -144,6 +144,26 @@ export default function CycleModal({ isOpen, onClose, onSave, onDelete, initialD
                         />
                     </section>
 
+                    <section className={styles.section}>
+                        <h3>作付タイプ</h3>
+                        <div className={styles.typeToggle}>
+                            <label>
+                                <input
+                                    type="radio"
+                                    checked={!data.isParentStock}
+                                    onChange={() => setData({ ...data, isParentStock: false })}
+                                /> 本圃（通常）
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    checked={!!data.isParentStock}
+                                    onChange={() => setData({ ...data, isParentStock: true })}
+                                /> 親株
+                            </label>
+                        </div>
+                    </section>
+
                     <div className={styles.grid}>
                         <div className={styles.field}>
                             <label>土壌消毒開始</label>
