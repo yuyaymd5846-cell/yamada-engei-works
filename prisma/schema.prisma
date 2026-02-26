@@ -98,6 +98,12 @@ model CropCycle {
   harvestStart     DateTime? @map("harvest_start")
   harvestEnd       DateTime? @map("harvest_end")
 
+  // Parent Stock (親株) specific fields
+  isParentStock    Boolean   @default(false) @map("is_parent_stock")
+  pinchingDate     DateTime? @map("pinching_date")
+  cuttingsStart    DateTime? @map("cuttings_start")
+  cleanupDate      DateTime? @map("cleanup_date")
+
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

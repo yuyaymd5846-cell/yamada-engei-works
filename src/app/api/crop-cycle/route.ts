@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const data = await request.json()
-        const { greenhouseId, greenhouseName, batchNumber, varieties, memo, disinfectionStart, disinfectionEnd, plantingDate, lightsOffDate, harvestStart, harvestEnd } = data
+        const { greenhouseId, greenhouseName, batchNumber, varieties, memo, disinfectionStart, disinfectionEnd, plantingDate, lightsOffDate, harvestStart, harvestEnd, isParentStock, pinchingDate, cuttingsStart, cleanupDate } = data
 
         const cycle = await prisma.cropCycle.create({
             data: {
@@ -31,6 +31,10 @@ export async function POST(request: Request) {
                 lightsOffDate: lightsOffDate ? new Date(lightsOffDate) : null,
                 harvestStart: harvestStart ? new Date(harvestStart) : null,
                 harvestEnd: harvestEnd ? new Date(harvestEnd) : null,
+                isParentStock: isParentStock ?? false,
+                pinchingDate: pinchingDate ? new Date(pinchingDate) : null,
+                cuttingsStart: cuttingsStart ? new Date(cuttingsStart) : null,
+                cleanupDate: cleanupDate ? new Date(cleanupDate) : null,
             }
         })
 
@@ -44,7 +48,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
     try {
         const data = await request.json()
-        const { id, varieties, memo, disinfectionStart, disinfectionEnd, plantingDate, lightsOffDate, harvestStart, harvestEnd, batchNumber } = data
+        const { id, varieties, memo, disinfectionStart, disinfectionEnd, plantingDate, lightsOffDate, harvestStart, harvestEnd, batchNumber, isParentStock, pinchingDate, cuttingsStart, cleanupDate } = data
 
         if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 })
 
@@ -60,6 +64,10 @@ export async function PATCH(request: Request) {
                 lightsOffDate: lightsOffDate !== undefined ? (lightsOffDate ? new Date(lightsOffDate) : null) : undefined,
                 harvestStart: harvestStart !== undefined ? (harvestStart ? new Date(harvestStart) : null) : undefined,
                 harvestEnd: harvestEnd !== undefined ? (harvestEnd ? new Date(harvestEnd) : null) : undefined,
+                isParentStock: isParentStock !== undefined ? isParentStock : undefined,
+                pinchingDate: pinchingDate !== undefined ? (pinchingDate ? new Date(pinchingDate) : null) : undefined,
+                cuttingsStart: cuttingsStart !== undefined ? (cuttingsStart ? new Date(cuttingsStart) : null) : undefined,
+                cleanupDate: cleanupDate !== undefined ? (cleanupDate ? new Date(cleanupDate) : null) : undefined,
             }
         })
 

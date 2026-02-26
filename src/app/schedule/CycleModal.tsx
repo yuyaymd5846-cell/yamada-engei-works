@@ -22,6 +22,10 @@ interface CropCycle {
     lightsOffDate: string | null
     harvestStart: string | null
     harvestEnd: string | null
+    isParentStock?: boolean
+    pinchingDate?: string | null
+    cuttingsStart?: string | null
+    cleanupDate?: string | null
 }
 
 interface Props {
@@ -99,7 +103,6 @@ export default function CycleModal({ isOpen, onClose, onSave, onDelete, initialD
                         <span>作目</span>
                     </div>
                     <div className={styles.headerActions}>
-                        <button className={styles.copyBtn}>コピー</button>
                         {data.id && (
                             <button className={styles.deleteBtn} onClick={() => onDelete?.(data.id!)}>削除</button>
                         )}
@@ -158,68 +161,137 @@ export default function CycleModal({ isOpen, onClose, onSave, onDelete, initialD
                                 onChange={e => setData({ ...data, disinfectionEnd: e.target.value })}
                             />
                         </div>
-                        <div className={styles.field}>
-                            <label>定植日</label>
-                            <input
-                                type="date"
-                                value={formatDateForInput(data.plantingDate)}
-                                onChange={e => {
-                                    const plantingDate = e.target.value
-                                    const lightsOffDate = addDays(plantingDate, 25)
-                                    const harvestStart = addDays(lightsOffDate, 49)
-                                    const harvestEnd = addDays(harvestStart, 10)
-                                    setData({
-                                        ...data,
-                                        plantingDate,
-                                        lightsOffDate,
-                                        harvestStart,
-                                        harvestEnd
-                                    })
-                                }}
-                            />
-                        </div>
-                        <div className={styles.field}>
-                            <label>消灯開始</label>
-                            <input
-                                type="date"
-                                value={formatDateForInput(data.lightsOffDate)}
-                                onChange={e => {
-                                    const lightsOffDate = e.target.value
-                                    const harvestStart = addDays(lightsOffDate, 49)
-                                    const harvestEnd = addDays(harvestStart, 10)
-                                    setData({
-                                        ...data,
-                                        lightsOffDate,
-                                        harvestStart,
-                                        harvestEnd
-                                    })
-                                }}
-                            />
-                        </div>
-                        <div className={styles.field}>
-                            <label>収穫開始</label>
-                            <input
-                                type="date"
-                                value={formatDateForInput(data.harvestStart)}
-                                onChange={e => {
-                                    const harvestStart = e.target.value
-                                    const harvestEnd = addDays(harvestStart, 10)
-                                    setData({
-                                        ...data,
-                                        harvestStart,
-                                        harvestEnd
-                                    })
-                                }}
-                            />
-                        </div>
-                        <div className={styles.field}>
-                            <label>終了</label>
-                            <input
-                                type="date"
-                                value={formatDateForInput(data.harvestEnd)}
-                                onChange={e => setData({ ...data, harvestEnd: e.target.value })}
-                            />
-                        </div>
+                        {data.isParentStock ? (
+                            <>
+                                <div className={styles.field}>
+                                    <label>定植日</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.plantingDate)}
+                                        onChange={e => {
+                                            const plantingDate = e.target.value
+                                            const pinchingDate = addDays(plantingDate, 14)
+                                            const cuttingsStart = addDays(pinchingDate, 30)
+                                            const cleanupDate = addDays(cuttingsStart, 90)
+                                            setData({
+                                                ...data,
+                                                plantingDate,
+                                                pinchingDate,
+                                                cuttingsStart,
+                                                cleanupDate
+                                            })
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label>摘芯</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.pinchingDate)}
+                                        onChange={e => {
+                                            const pinchingDate = e.target.value
+                                            const cuttingsStart = addDays(pinchingDate, 30)
+                                            const cleanupDate = addDays(cuttingsStart, 90)
+                                            setData({
+                                                ...data,
+                                                pinchingDate,
+                                                cuttingsStart,
+                                                cleanupDate
+                                            })
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label>採穂開始</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.cuttingsStart)}
+                                        onChange={e => {
+                                            const cuttingsStart = e.target.value
+                                            const cleanupDate = addDays(cuttingsStart, 90)
+                                            setData({
+                                                ...data,
+                                                cuttingsStart,
+                                                cleanupDate
+                                            })
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label>片付け</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.cleanupDate)}
+                                        onChange={e => setData({ ...data, cleanupDate: e.target.value })}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className={styles.field}>
+                                    <label>定植日</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.plantingDate)}
+                                        onChange={e => {
+                                            const plantingDate = e.target.value
+                                            const lightsOffDate = addDays(plantingDate, 25)
+                                            const harvestStart = addDays(lightsOffDate, 49)
+                                            const harvestEnd = addDays(harvestStart, 10)
+                                            setData({
+                                                ...data,
+                                                plantingDate,
+                                                lightsOffDate,
+                                                harvestStart,
+                                                harvestEnd
+                                            })
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label>消灯開始</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.lightsOffDate)}
+                                        onChange={e => {
+                                            const lightsOffDate = e.target.value
+                                            const harvestStart = addDays(lightsOffDate, 49)
+                                            const harvestEnd = addDays(harvestStart, 10)
+                                            setData({
+                                                ...data,
+                                                lightsOffDate,
+                                                harvestStart,
+                                                harvestEnd
+                                            })
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label>収穫開始</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.harvestStart)}
+                                        onChange={e => {
+                                            const harvestStart = e.target.value
+                                            const harvestEnd = addDays(harvestStart, 10)
+                                            setData({
+                                                ...data,
+                                                harvestStart,
+                                                harvestEnd
+                                            })
+                                        }}
+                                    />
+                                </div>
+                                <div className={styles.field}>
+                                    <label>終了</label>
+                                    <input
+                                        type="date"
+                                        value={formatDateForInput(data.harvestEnd)}
+                                        onChange={e => setData({ ...data, harvestEnd: e.target.value })}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

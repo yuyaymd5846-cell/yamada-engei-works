@@ -23,6 +23,10 @@ interface CropCycle {
     lightsOffDate: string | null
     harvestStart: string | null
     harvestEnd: string | null
+    isParentStock?: boolean
+    pinchingDate?: string | null
+    cuttingsStart?: string | null
+    cleanupDate?: string | null
 }
 
 interface Greenhouse {
@@ -88,6 +92,7 @@ export default function SchedulePage() {
         const d = new Date(); d.setHours(0, 0, 0, 0); return d
     })
     const [viewMode, setViewMode] = useState<'week' | 'month' | 'year'>('month')
+    const [listTab, setListTab] = useState<'standard' | 'parent'>('standard')
 
     // Refs for synced scrolling
     const ghPanelRef = useRef<HTMLDivElement>(null)
@@ -237,7 +242,7 @@ export default function SchedulePage() {
 
     const openNewCycle = (gh: Greenhouse) => {
         // Find previous cycles for this greenhouse to pre-fill varieties
-        const ghCycles = cycles.filter(c => c.greenhouseId === gh.id)
+        const ghCycles = cycles.filter(c => c.greenhouseId === gh.id && (listTab === 'parent' ? c.isParentStock : !c.isParentStock))
         let prevVarieties: Variety[] = [{ name: '', count: 0 }]
         let nextBatch = 1
 
@@ -267,7 +272,8 @@ export default function SchedulePage() {
             greenhouseId: gh.id,
             greenhouseName: gh.name,
             batchNumber: nextBatch,
-            varieties: prevVarieties
+            varieties: prevVarieties,
+            isParentStock: listTab === 'parent'
         })
         setIsModalOpen(true)
     }
@@ -366,6 +372,10 @@ export default function SchedulePage() {
                             setCurrentDate(d)
                         }}>▶</button>
                     </div>
+                    <div className={styles.viewToggle} style={{ marginLeft: 16, marginRight: 16 }}>
+                        <button className={listTab === 'standard' ? styles.active : ''} onClick={() => setListTab('standard')}>本圃</button>
+                        <button className={listTab === 'parent' ? styles.active : ''} onClick={() => setListTab('parent')}>親株</button>
+                    </div>
                     <div className={styles.viewToggle}>
                         <button className={viewMode === 'week' ? styles.active : ''} onClick={() => setViewMode('week')}>週</button>
                         <button className={viewMode === 'month' ? styles.active : ''} onClick={() => setViewMode('month')}>月</button>
@@ -376,10 +386,21 @@ export default function SchedulePage() {
 
             {/* Legend */}
             <div className={styles.legend}>
-                <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜消灯</span>
-                <span className={styles.legendItem}><span style={{ background: '#2196f3' }} className={styles.legendDot} />消灯〜収穫</span>
-                <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />収穫</span>
-                <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
+                {listTab === 'standard' ? (
+                    <>
+                        <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜消灯</span>
+                        <span className={styles.legendItem}><span style={{ background: '#2196f3' }} className={styles.legendDot} />消灯〜収穫</span>
+                        <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />収穫</span>
+                        <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
+                    </>
+                ) : (
+                    <>
+                        <span className={styles.legendItem}><span style={{ background: '#4caf50' }} className={styles.legendDot} />定植〜摘芯</span>
+                        <span className={styles.legendItem}><span style={{ background: '#fd7e14' }} className={styles.legendDot} />摘芯〜採穂</span>
+                        <span className={styles.legendItem}><span style={{ background: '#ffc107' }} className={styles.legendDot} />採穂</span>
+                        <span className={styles.legendItem}><span style={{ background: '#adb5bd' }} className={styles.legendDot} />消毒</span>
+                    </>
+                )}
             </div>
 
             {/* Two-Panel Chart: left panel fixed, right panel scrolls horizontally */}
@@ -458,16 +479,16 @@ export default function SchedulePage() {
                             {todayMarkerLeft >= 0 && (
                                 <div className={styles.todayMarker} style={{ left: todayMarkerLeft }} />
                             )}
-                            {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
-                                const diffDays = (a: string | null, b: string | null) => {
+                            {cycles.filter(c => c.greenhouseId === gh.id && (listTab === 'parent' ? c.isParentStock : !c.isParentStock)).map(cycle => {
+                                const diffDays = (a: string | null | undefined, b: string | null | undefined) => {
                                     if (!a || !b) return null
                                     const da = new Date(a), db = new Date(b)
                                     if (isNaN(da.getTime()) || isNaN(db.getTime())) return null
                                     return Math.round((db.getTime() - da.getTime()) / (1000 * 60 * 60 * 24))
                                 }
 
-                                const renderBar = (start: string | null, end: string | null, color: string, label: string) => {
-                                    const style = getBarStyle(start, end, color)
+                                const renderBar = (start: string | null | undefined, end: string | null | undefined, color: string, label: string) => {
+                                    const style = getBarStyle(start || null, end || null, color)
                                     if (!style) return null
                                     return (
                                         <div className={styles.bar} style={style} onClick={(e) => {
@@ -478,35 +499,57 @@ export default function SchedulePage() {
                                     )
                                 }
 
-                                // Green: planting→lights off (show days)
-                                const greenDays = diffDays(cycle.plantingDate, cycle.lightsOffDate)
-                                const greenLabel = viewMode === 'year'
-                                    ? (greenDays !== null ? `${greenDays}d` : '')
-                                    : (greenDays !== null ? `定植 ${greenDays}d` : '定植')
+                                if (cycle.isParentStock) {
+                                    const plantDays = diffDays(cycle.plantingDate, cycle.pinchingDate)
+                                    const plantLabel = viewMode === 'year' ? (plantDays !== null ? `${plantDays}d` : '') : (plantDays !== null ? `定植 ${plantDays}d` : '定植')
 
-                                // Blue: lights off→harvest start (show days)
-                                const blueDays = diffDays(cycle.lightsOffDate, cycle.harvestStart)
-                                const blueLabel = viewMode === 'year'
-                                    ? (blueDays !== null ? `${blueDays}d` : '')
-                                    : (blueDays !== null ? `消灯 ${blueDays}d` : '消灯')
+                                    const pinchDays = diffDays(cycle.pinchingDate, cycle.cuttingsStart)
+                                    const pinchLabel = viewMode === 'year' ? (pinchDays !== null ? `${pinchDays}d` : '') : (pinchDays !== null ? `摘芯 ${pinchDays}d` : '摘芯')
 
-                                // Yellow: harvest, show total planting→harvest end
-                                const totalDays = diffDays(cycle.plantingDate, cycle.harvestEnd)
-                                const yellowLabel = viewMode === 'year'
-                                    ? (totalDays !== null ? `全${totalDays}d` : '')
-                                    : (totalDays !== null ? `収穫 全${totalDays}d` : '収穫')
+                                    const cutDays = diffDays(cycle.cuttingsStart, cycle.cleanupDate)
+                                    const cutLabel = viewMode === 'year' ? (cutDays !== null ? `全${cutDays}d` : '') : (cutDays !== null ? `採穂 全${cutDays}d` : '採穂開始')
 
-                                // Grey: disinfection
-                                const disinfectLabel = viewMode === 'year' ? '' : '消毒'
+                                    const disinfectLabel = viewMode === 'year' ? '' : '消毒'
 
-                                return (
-                                    <div key={cycle.id}>
-                                        {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', disinfectLabel)}
-                                        {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', greenLabel)}
-                                        {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', blueLabel)}
-                                        {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', yellowLabel)}
-                                    </div>
-                                )
+                                    return (
+                                        <div key={cycle.id}>
+                                            {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', disinfectLabel)}
+                                            {renderBar(cycle.plantingDate, cycle.pinchingDate, '#4caf50', plantLabel)}
+                                            {renderBar(cycle.pinchingDate, cycle.cuttingsStart, '#fd7e14', pinchLabel)}
+                                            {renderBar(cycle.cuttingsStart, cycle.cleanupDate, '#ffc107', cutLabel)}
+                                        </div>
+                                    )
+                                } else {
+                                    // Green: planting→lights off (show days)
+                                    const greenDays = diffDays(cycle.plantingDate, cycle.lightsOffDate)
+                                    const greenLabel = viewMode === 'year'
+                                        ? (greenDays !== null ? `${greenDays}d` : '')
+                                        : (greenDays !== null ? `定植 ${greenDays}d` : '定植')
+
+                                    // Blue: lights off→harvest start (show days)
+                                    const blueDays = diffDays(cycle.lightsOffDate, cycle.harvestStart)
+                                    const blueLabel = viewMode === 'year'
+                                        ? (blueDays !== null ? `${blueDays}d` : '')
+                                        : (blueDays !== null ? `消灯 ${blueDays}d` : '消灯')
+
+                                    // Yellow: harvest, show total planting→harvest end
+                                    const totalDays = diffDays(cycle.plantingDate, cycle.harvestEnd)
+                                    const yellowLabel = viewMode === 'year'
+                                        ? (totalDays !== null ? `全${totalDays}d` : '')
+                                        : (totalDays !== null ? `収穫 全${totalDays}d` : '収穫')
+
+                                    // Grey: disinfection
+                                    const disinfectLabel = viewMode === 'year' ? '' : '消毒'
+
+                                    return (
+                                        <div key={cycle.id}>
+                                            {renderBar(cycle.disinfectionStart, cycle.disinfectionEnd, '#adb5bd', disinfectLabel)}
+                                            {renderBar(cycle.plantingDate, cycle.lightsOffDate, '#4caf50', greenLabel)}
+                                            {renderBar(cycle.lightsOffDate, cycle.harvestStart, '#2196f3', blueLabel)}
+                                            {renderBar(cycle.harvestStart, cycle.harvestEnd, '#ffc107', yellowLabel)}
+                                        </div>
+                                    )
+                                }
                             })}
                         </div>
                     ))}
