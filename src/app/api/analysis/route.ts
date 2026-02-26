@@ -4,24 +4,70 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const records = await prisma.workRecord.findMany({
-            orderBy: { date: 'asc' } // Timeseries needs ascending order
+        const { searchParams } = new URL(request.url)
+        const yearParam = searchParams.get('year')
+        const ghParam = searchParams.get('gh')
+        const batchParam = searchParams.get('batch')
+
+        // 1. Get all CropCycles to establish the "Harvest Year" mapping
+        const allCycles = await prisma.cropCycle.findMany()
+
+        // Create lists of available options for the UI filters
+        const availableYears = new Set<string>()
+        const availableGreenhouses = new Set<string>()
+
+        // Find the harvest year for each cycle
+        allCycles.forEach(c => {
+            if (c.harvestStart) {
+                const year = new Date(c.harvestStart).getFullYear().toString()
+                availableYears.add(year)
+            }
+            availableGreenhouses.add(c.greenhouseName)
         })
 
-        // 1. Daily Trend Analysis (Stored by Date)
-        // Structure: { date: '2024-02-20', '収穫': 5, '消毒': 2, total: 7 }
+        // 2. Fetch all WorkRecords (we'll filter them in-memory to ensure we correctly map to CropCycles)
+        const allRecords = await prisma.workRecord.findMany({
+            orderBy: { date: 'asc' }
+        })
+
+        const filteredRecords = allRecords.filter(record => {
+            // Find the corresponding CropCycle for this record
+            // Match by greenhouseName and batchNumber
+            const cycle = allCycles.find(c =>
+                c.greenhouseName === record.greenhouseName &&
+                c.batchNumber === record.batchNumber
+            )
+
+            // If a year filter is applied, check the harvest year of the cycle
+            if (yearParam) {
+                if (!cycle || !cycle.harvestStart) return false
+                const cycleYear = new Date(cycle.harvestStart).getFullYear().toString()
+                if (cycleYear !== yearParam) return false
+            }
+
+            // If a greenhouse filter is applied
+            if (ghParam && ghParam !== 'ALL' && record.greenhouseName !== ghParam) {
+                return false
+            }
+
+            // If a batch filter is applied
+            if (batchParam && batchParam !== 'ALL' && record.batchNumber?.toString() !== batchParam) {
+                return false
+            }
+
+            return true
+        })
+
+        // 3. Aggregate Daily Trend Data
         const dailyTrendMap = new Map<string, any>()
         const workNames = new Set<string>()
 
-        // 2. Work Distribution (Total Time per Work Name)
-        const workDistributionMap = new Map<string, number>()
-
-        // 3. Greenhouse Comparison (Total Time per Greenhouse)
+        // 4. Aggregate Greenhouse Comparison (Total Time per Greenhouse)
         const greenhouseComparisonMap = new Map<string, number>()
 
-        records.forEach(record => {
+        filteredRecords.forEach(record => {
             const dateStr = record.date.toISOString().split('T')[0]
             workNames.add(record.workName)
 
@@ -32,10 +78,6 @@ export async function GET() {
             const dayData = dailyTrendMap.get(dateStr)!
             dayData[record.workName] = (dayData[record.workName] || 0) + record.spentTime
 
-            // Work Distribution
-            const currentWorkTime = workDistributionMap.get(record.workName) || 0
-            workDistributionMap.set(record.workName, currentWorkTime + record.spentTime)
-
             // Greenhouse Comparison
             const currentGhTime = greenhouseComparisonMap.get(record.greenhouseName) || 0
             greenhouseComparisonMap.set(record.greenhouseName, currentGhTime + record.spentTime)
@@ -43,11 +85,6 @@ export async function GET() {
 
         // Format for Recharts
         const trendData = Array.from(dailyTrendMap.values())
-
-        const workDistributionData = Array.from(workDistributionMap.entries()).map(([name, value]) => ({
-            name,
-            value
-        })).sort((a, b) => b.value - a.value)
 
         const greenhouseComparisonData = Array.from(greenhouseComparisonMap.entries()).map(([name, value]) => ({
             name,
@@ -61,9 +98,13 @@ export async function GET() {
         return NextResponse.json({
             trend: trendData,
             workNames: Array.from(workNames),
-            workDistribution: workDistributionData,
             greenhouseComparison: greenhouseComparisonData,
-            totalRecords: records.length
+            totalRecords: filteredRecords.length,
+            // Pass the filter options to the frontend
+            filterOptions: {
+                years: Array.from(availableYears).sort((a, b) => b.localeCompare(a)), // Descending
+                greenhouses: Array.from(availableGreenhouses).sort()
+            }
         })
 
     } catch (error) {
