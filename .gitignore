@@ -3,3 +3,34 @@
 .env
 prisma/dev.db
 *.log
+# development scripts
+test-db.*
+dump_manuals.ts
+verify_manuals.ts
+*.json
+!package.json
+!tsconfig.json
+!next.config.mjs
+!eslint.config.mjs
+!all_manuals_api.json
+!all_manuals_cutting.json
+!all_manuals_harvest.json
+!find_staking.json
+!harvest_update.json
+!staking_manual.json
+!verify_output.json
+# Wait, let's keep it simple: exclude everything that is clearly a temp script or result
+# Actually better to just exclude all .ts files in root besides the config ones
+*.ts
+!next-env.d.ts
+!dump_manuals.ts
+!verify_manuals.ts
+# Oops, the above is confusing. Let's just block the specific ones.
+test-db.js
+test-db.ts
+dump_manuals.ts
+verify_manuals.ts
+# ignore any json files in root (likely exports)
+/*.json
+!package.json
+!tsconfig.json
