@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
     const isLoginPage = request.nextUrl.pathname === '/login'
     const isPublicApi = request.nextUrl.pathname.startsWith('/api/auth-debug') ||
-        request.nextUrl.pathname.startsWith('/api/db-check')
+        request.nextUrl.pathname.startsWith('/api/db-check') ||
+        request.nextUrl.pathname.startsWith('/api/gpt')
 
     // Allow public routes
     if (isLoginPage || isPublicApi) {

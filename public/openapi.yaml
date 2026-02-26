@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Yamada Engei Works GPT API
+  description: API for Custom GPTs to interact with the Yamada Engei Works farm management system.
+  version: 1.0.0
+servers:
+  - url: https://yamada-engei-works.vercel.app/api/gpt
+    description: Production Server
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+security:
+  - ApiKeyAuth: []
+paths:
+  /status:
+    get:
+      summary: Get Greenhouse Status
+      description: Returns the current status of all greenhouses, active crop cycles, and recent schedules (Gantt chart).
+      operationId: getStatus
+      responses:
+        '200':
+          description: OK
+  /manuals:
+    get:
+      summary: Search Work Manuals
+      description: Searches for farm work manuals by keyword.
+      operationId: searchManuals
+      parameters:
+        - name: q
+          in: query
+          description: Search keyword (e.g., work name, stage, purpose)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /recommendations:
+    get:
+      summary: Get Tasks and Pesticide Recommendations
+      description: Retrieves daily task recommendations and the next pesticide rotation symbol to use for each greenhouse.
+      operationId: getRecommendations
+      responses:
+        '200':
+          description: OK
+  /analysis:
+    get:
+      summary: Get Past Data Analysis
+      description: Retrieves recent work records and past crop cycles for analysis or looking back at previous works.
+      operationId: getAnalysis
+      parameters:
+        - name: greenhouseName
+          in: query
+          description: Name of the greenhouse to filter by (e.g., "1号ハウス")
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /work-records:
+    post:
+      summary: Create Work Record (Daily Report)
+      description: Records a new farm work entry into the database based on voice input or text.
+      operationId: createWorkRecord
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                workName:
+                  type: string
+                  description: The name of the work done (e.g., "葉かき", "薬剤散布")
+                greenhouseName:
+                  type: string
+                  description: The greenhouse name (e.g., "1号ハウス")
+                spentTime:
+                  type: number
+                  description: Time spent in hours (e.g., 2.5)
+                note:
+                  type: string
+                  description: Optional notes about the work or observations (e.g., "アブラムシが発生していた")
+              required:
+                - workName
+                - greenhouseName
+                - spentTime
+      responses:
+        '200':
+          description: Record created successfully
