@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: Yamada Engei Works GPT API
   description: API for Custom GPTs to interact with the Yamada Engei Works farm management system.
@@ -27,6 +27,7 @@ paths:
             application/json:
               schema:
                 type: object
+                properties: {}
   /manuals:
     get:
       summary: Search Work Manuals
@@ -46,6 +47,7 @@ paths:
             application/json:
               schema:
                 type: object
+                properties: {}
   /recommendations:
     get:
       summary: Get Tasks and Pesticide Recommendations
@@ -58,6 +60,7 @@ paths:
             application/json:
               schema:
                 type: object
+                properties: {}
   /analysis:
     get:
       summary: Get Past Data Analysis
@@ -77,6 +80,7 @@ paths:
             application/json:
               schema:
                 type: object
+                properties: {}
   /work-records:
     post:
       summary: Create Work Record (Daily Report)
@@ -112,3 +116,4 @@ paths:
             application/json:
               schema:
                 type: object
+                properties: {}
