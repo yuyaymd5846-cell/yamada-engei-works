@@ -21,7 +21,7 @@ verify_manuals.ts
 !verify_output.json
 # Wait, let's keep it simple: exclude everything that is clearly a temp script or result
 # Actually better to just exclude all .ts files in root besides the config ones
-*.ts
+/*.ts
 !next-env.d.ts
 !dump_manuals.ts
 !verify_manuals.ts
