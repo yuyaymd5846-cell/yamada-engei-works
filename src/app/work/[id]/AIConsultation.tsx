@@ -12,13 +12,6 @@ interface DiagnosisResult {
     imageUrl: string | null
 }
 
-const FEEDBACK_LABELS = [
-    { value: '発蕾は確認しやすい状態です', emoji: '✅', colorClass: 'good' },
-    { value: '発蕾はやや遅れ気味の可能性があります', emoji: '⚠️', colorClass: 'warn' },
-    { value: '発蕾遅れの可能性があります', emoji: '🔴', colorClass: 'danger' },
-    { value: '画像だけでは判定が安定しません', emoji: '❓', colorClass: 'unknown' },
-]
-
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 export default function AIConsultation({ workName }: { workName: string }) {
@@ -30,28 +23,18 @@ export default function AIConsultation({ workName }: { workName: string }) {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
 
-    // フィードバック
-    const [feedbackSent, setFeedbackSent] = useState(false)
-    const [feedbackLoading, setFeedbackLoading] = useState(false)
-    const [selectedFeedback, setSelectedFeedback] = useState<string | null>(null)
-    const [feedbackNote, setFeedbackNote] = useState('')
-    const [feedbackError, setFeedbackError] = useState<string | null>(null)
-
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
         setError(null)
         setResult(null)
-        setFeedbackSent(false)
-        setSelectedFeedback(null)
-        setFeedbackNote('')
 
         if (!file) return
 
-        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic', 'image/heif']
-        if (!allowed.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|heic|heif)$/i)) {
-            setError('対応していない画像形式です。jpg / jpeg / png を選択してください。')
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic', 'image/heif', 'image/webp']
+        if (!allowed.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|heic|heif|webp)$/i)) {
+            setError('対応していない画像形式です。jpg / png / webp / heic を選択してください。')
             return
         }
         if (file.size > MAX_FILE_SIZE) {
@@ -70,10 +53,6 @@ export default function AIConsultation({ workName }: { workName: string }) {
         setPreviewUrl(null)
         setResult(null)
         setError(null)
-        setFeedbackSent(false)
-        setSelectedFeedback(null)
-        setFeedbackNote('')
-        setFeedbackError(null)
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
@@ -88,8 +67,6 @@ export default function AIConsultation({ workName }: { workName: string }) {
 
         setLoading(true)
         setResult(null)
-        setFeedbackSent(false)
-        setSelectedFeedback(null)
 
         try {
             const formData = new FormData()
@@ -116,38 +93,6 @@ export default function AIConsultation({ workName }: { workName: string }) {
         }
     }
 
-    async function handleFeedback() {
-        if (!result?.diagnosisId || !selectedFeedback) return
-
-        setFeedbackLoading(true)
-        setFeedbackError(null)
-
-        try {
-            const res = await fetch('/api/ai/budding-feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    diagnosisId: result.diagnosisId,
-                    expertLabel: selectedFeedback,
-                    expertNote: feedbackNote,
-                }),
-            })
-
-            const json = await res.json()
-
-            if (!res.ok) {
-                setFeedbackError(json.error || 'フィードバックの送信に失敗しました。')
-                return
-            }
-
-            setFeedbackSent(true)
-        } catch {
-            setFeedbackError('通信エラーが発生しました。')
-        } finally {
-            setFeedbackLoading(false)
-        }
-    }
-
     function getLabelClass(label: string): string {
         if (label.includes('確認しやすい')) return styles.labelGood
         if (label.includes('やや遅れ')) return styles.labelWarn
@@ -158,7 +103,7 @@ export default function AIConsultation({ workName }: { workName: string }) {
     if (!isOpen) {
         return (
             <button onClick={() => setIsOpen(true)} className={styles.aiButton}>
-                🌱 AI発蕾診断 (Beta)
+                🌱 AI発蕾診断
             </button>
         )
     }
@@ -177,8 +122,8 @@ export default function AIConsultation({ workName }: { workName: string }) {
                             id="buddingImage"
                             ref={fileInputRef}
                             type="file"
-                            accept="image/jpeg,image/jpg,image/png,image/heic,image/heif,.jpg,.jpeg,.png,.heic,.heif"
-                            capture="environment"   // スマホでリアカメラを優先起動
+                            accept="image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp,.jpg,.jpeg,.png,.heic,.heif,.webp"
+                            capture="environment"
                             onChange={handleFileChange}
                             className={styles.fileInput}
                         />
@@ -246,7 +191,7 @@ export default function AIConsultation({ workName }: { workName: string }) {
 
                     {/* 参考スコア */}
                     <div className={styles.scoreRow}>
-                        <span className={styles.scoreLabel}>参考スコア</span>
+                        <span className={styles.scoreLabel}>AI確信度</span>
                         <div className={styles.scoreBar}>
                             <div
                                 className={styles.scoreBarFill}
@@ -255,66 +200,6 @@ export default function AIConsultation({ workName }: { workName: string }) {
                         </div>
                         <span className={styles.scoreValue}>{Math.round(result.score * 100)}%</span>
                     </div>
-                    <p className={styles.scoreNote}>
-                        ※ スコアは仮実装の参考値です。
-                    </p>
-
-                    {/* ─── 熟練者フィードバック ─── */}
-                    {result.diagnosisId && !feedbackSent && (
-                        <div className={styles.feedbackSection}>
-                            <p className={styles.feedbackTitle}>
-                                👨‍🌾 熟練者フィードバック（任意）
-                            </p>
-                            <p className={styles.feedbackSubtitle}>
-                                実際の発蕾状態として正しい判定を選んでください。データ改善に使用されます。
-                            </p>
-                            <div className={styles.feedbackButtons}>
-                                {FEEDBACK_LABELS.map((item) => (
-                                    <button
-                                        key={item.value}
-                                        type="button"
-                                        onClick={() => setSelectedFeedback(item.value)}
-                                        className={`${styles.feedbackBtn} ${selectedFeedback === item.value ? styles.feedbackBtnSelected : ''}`}
-                                    >
-                                        {item.emoji} {item.value}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {selectedFeedback && (
-                                <>
-                                    <textarea
-                                        className={styles.feedbackNote}
-                                        placeholder="補足メモ（任意）例：草丈30cm、定植後25日目"
-                                        value={feedbackNote}
-                                        onChange={(e) => setFeedbackNote(e.target.value)}
-                                        rows={2}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleFeedback}
-                                        disabled={feedbackLoading}
-                                        className={styles.feedbackSubmitBtn}
-                                    >
-                                        {feedbackLoading
-                                            ? <span className={styles.loadingSpinner}>送信中...</span>
-                                            : '✓ フィードバックを送信'}
-                                    </button>
-
-                                    {feedbackError && (
-                                        <div className={styles.diagnosisError}>{feedbackError}</div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {/* フィードバック完了 */}
-                    {feedbackSent && (
-                        <div className={styles.feedbackDone}>
-                            ✅ フィードバックを受け取りました。ありがとうございます！
-                        </div>
-                    )}
                 </div>
             )}
         </div>

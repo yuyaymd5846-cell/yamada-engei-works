@@ -520,121 +520,6 @@
     margin-top: var(--spacing-xs);
 }
 
-/* ─────────────────────────────────────────
-   熟練者フィードバック
-───────────────────────────────────────── */
-
-.feedbackSection {
-    margin-top: var(--spacing-md);
-    padding-top: var(--spacing-md);
-    border-top: 1px dashed var(--color-border);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-}
-
-.feedbackTitle {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--color-primary);
-}
-
-.feedbackSubtitle {
-    font-size: 0.82rem;
-    color: var(--color-text-muted);
-    line-height: 1.5;
-}
-
-/* ボタングリッド — スマホでタップしやすいサイズ */
-.feedbackButtons {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-sm);
-}
-
-.feedbackBtn {
-    padding: 14px var(--spacing-md);
-    border: 2px solid var(--color-border);
-    border-radius: var(--border-radius-md);
-    background-color: white;
-    color: var(--color-text-main);
-    font-size: 0.88rem;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.15s;
-    line-height: 1.4;
-    /* タッチ操作のしやすさ */
-    min-height: 52px;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.feedbackBtn:hover {
-    border-color: var(--color-primary-light);
-    background-color: #f4f9f1;
-}
-
-.feedbackBtnSelected {
-    border-color: var(--color-primary);
-    background-color: var(--color-accent-light);
-    color: var(--color-primary);
-    font-weight: 700;
-}
-
-/* 補足メモ */
-.feedbackNote {
-    width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-sm);
-    font-family: inherit;
-    font-size: 0.88rem;
-    resize: vertical;
-    line-height: 1.5;
-}
-
-.feedbackNote:focus {
-    outline: none;
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 2px rgba(74, 124, 67, 0.15);
-}
-
-/* フィードバック送信ボタン */
-.feedbackSubmitBtn {
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: var(--border-radius-md);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    min-height: 52px;
-}
-
-.feedbackSubmitBtn:hover:not(:disabled) {
-    background-color: var(--color-primary-light);
-}
-
-.feedbackSubmitBtn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* フィードバック完了バナー */
-.feedbackDone {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background-color: #edfaf3;
-    border: 1px solid var(--color-success);
-    border-radius: var(--border-radius-sm);
-    color: var(--color-success);
-    font-size: 0.9rem;
-    font-weight: 600;
-    animation: fadeIn 0.3s ease;
-}
-
 /* スマホ向け: uploadArea のタッチターゲット拡大 */
 @media (max-width: 640px) {
     .uploadLabel {
@@ -647,10 +532,6 @@
         padding: 14px 12px;
         font-size: 0.95rem;
         min-height: 52px;
-    }
-
-    .feedbackButtons {
-        grid-template-columns: 1fr;
     }
 
     .formActions {

@@ -7,7 +7,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 // ─────────────────────────────────────────────────────────────
 const LABELS = {
     GOOD: '発蕾は確認しやすい状態です',
-    SLOW: '発蕾はやや遅れ気味の可能性があります',
     DELAYED: '発蕾遅れの可能性があります',
     UNCLEAR: '画像だけでは判定が安定しません',
 } as const
@@ -38,24 +37,22 @@ async function analyzeBuddingWithGemini(
 この画像を見て、植物の「発蕾（はつらい）状態」を判定してください。
 
 ## 判定基準
+非常にシンプルに、蕾があるかどうか・順調かだけを判定します。
 
-判定は必ず以下の4つのうち1つだけをキーとして返してください：
-
-- GOOD     : 蕾（つぼみ）が明確に確認できる、または蕾形成が順調に進んでいると判断できる
-- SLOW     : 蕾はあるが、やや小さい・少ない・進みが弱いと感じる
-- DELAYED  : 蕾がほとんど見えない、または発蕾が遅れていると判断できる
-- UNCLEAR  : 画像の角度・ピンボケ・暗さなどにより判定が困難
+- GOOD     : 成長点（中心部）に小さな蕾が見え始めている、または既に蕾がはっきりと確認できる。少し早めの小さな蕾の状態であっても、確認できれば順調（GOOD）とみなす。
+- DELAYED  : 成長点に蕾の兆候が全く見られない、葉だけが展開していて発蕾が明確に遅れていると判断できる。
+- UNCLEAR  : 葉の陰で中心が見えない、ピンボケ、暗すぎるなどにより判定が困難。
 
 ## 回答フォーマット（必ずこの形式で）
 
-LABEL: (GOOD/SLOW/DELAYED/UNCLEAR のいずれか)
+LABEL: (GOOD/DELAYED/UNCLEAR のいずれか)
 SCORE: (0.00〜1.00、確信度)
-COMMENT: (日本語で30〜50文字の補足説明)
+COMMENT: (日本語で30〜50文字の補足説明。「中心部に小さな蕾が確認できるため順調です」など現状を簡潔に)
 
 例：
 LABEL: GOOD
-SCORE: 0.85
-COMMENT: 画像上では蕾が複数確認でき、発蕾が順調に進んでいると判断しました。
+SCORE: 0.90
+COMMENT: 中心部に小さな蕾が見え始めており、発蕾は順調に進んでいると判断できます。
 `
 
     const imagePart = {
@@ -93,12 +90,11 @@ function parseGeminiResponse(text: string): DiagnosisResult {
 function analyzeBuddingStub(imageBuffer: Buffer): DiagnosisResult {
     const tiers: DiagnosisResult[] = [
         { label: LABELS.GOOD, score: 0.91, comment: '画像上では蕾形成が確認しやすい状態です（デモ）' },
-        { label: LABELS.SLOW, score: 0.62, comment: '画像上では発蕾の進みがやや弱く見えます（デモ）' },
         { label: LABELS.DELAYED, score: 0.31, comment: '画像上では発蕾遅れ傾向が疑われます（デモ）' },
         { label: LABELS.UNCLEAR, score: 0.45, comment: '別角度や別画像で再確認してください（デモ）' },
     ]
-    const idx = Math.floor((imageBuffer.length % 100) / 25)
-    return tiers[Math.min(idx, 3)]
+    const idx = Math.floor((imageBuffer.length % 100) / 34)
+    return tiers[Math.min(idx, 2)]
 }
 
 // ─────────────────────────────────────────────────────────────
