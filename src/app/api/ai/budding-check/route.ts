@@ -169,14 +169,20 @@ export async function POST(request: Request) {
         // ── 1. 診断 ──────────────────────────────────────────
         let diagnosis: DiagnosisResult
         let usedModel = 'stub'
+        const apiKey = process.env.GEMINI_API_KEY
 
-        if (process.env.GEMINI_API_KEY) {
+        if (apiKey && apiKey.length > 5 && !apiKey.includes('your_secret')) {
             try {
                 diagnosis = await analyzeBuddingWithGemini(buffer, imageFile.type)
                 usedModel = 'gemini-1.5-flash'
-            } catch (err) {
-                console.warn('[budding-check] Gemini fallback to stub:', err)
-                diagnosis = analyzeBuddingStub(buffer)
+            } catch (err: any) {
+                console.error('[budding-check] Gemini API Error:', err)
+                diagnosis = {
+                    label: '【エラー】AI通信失敗',
+                    score: 0,
+                    comment: `Gemini APIからエラーが返されました: ${err.message || '不明なエラー'}。モデル名やAPIキーの権限、リージョン制限（日本国外等）を確認してください。`,
+                }
+                usedModel = 'gemini-error'
             }
         } else {
             diagnosis = analyzeBuddingStub(buffer)
