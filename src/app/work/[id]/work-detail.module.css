@@ -317,3 +317,347 @@
     color: var(--color-primary);
     margin-bottom: var(--spacing-sm);
 }
+
+/* ─────────────────────────────────────────
+   AI 発蕾診断 — 画像アップロード UI
+───────────────────────────────────────── */
+
+/* ファイル選択エリア */
+.uploadArea {
+    border: 2px dashed var(--color-accent);
+    border-radius: var(--border-radius-md);
+    background-color: #fffdf0;
+    transition: background-color 0.2s;
+}
+
+.uploadArea:hover {
+    background-color: #fdf6d6;
+}
+
+.uploadLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    cursor: pointer;
+    width: 100%;
+}
+
+.uploadIcon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.uploadText {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fileInput {
+    display: none;
+}
+
+/* 画像プレビュー */
+.previewContainer {
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background-color: #000;
+    max-height: 320px;
+    display: flex;
+    justify-content: center;
+}
+
+.previewImage {
+    max-width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    display: block;
+}
+
+/* エラーメッセージ */
+.diagnosisError {
+    background-color: #fff3f3;
+    border: 1px solid #f5c6c6;
+    color: var(--color-danger);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+}
+
+/* ローディングスピナー文字 */
+.loadingSpinner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.loadingSpinner::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 診断結果コンテナ */
+.diagnosisResult {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: white;
+    border: 1px solid #cce3ff;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 診断ラベル（大きく表示） */
+.diagnosisLabel {
+    font-size: 1.15rem;
+    font-weight: 700;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    border-left: 4px solid currentColor;
+}
+
+.labelGood {
+    color: var(--color-success);
+    background-color: #edfaf3;
+    border-color: var(--color-success);
+}
+
+.labelWarn {
+    color: #b8860b;
+    background-color: #fffaeb;
+    border-color: var(--color-warning);
+}
+
+.labelDanger {
+    color: var(--color-danger);
+    background-color: #fff3f3;
+    border-color: var(--color-danger);
+}
+
+.labelUnknown {
+    color: var(--color-text-muted);
+    background-color: #f5f5f5;
+    border-color: var(--color-border);
+}
+
+/* 補足コメント */
+.diagnosisComment {
+    font-size: 0.95rem;
+    color: var(--color-text-main);
+    line-height: 1.7;
+}
+
+/* 参考スコア */
+.scoreRow {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.scoreLabel {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    min-width: 64px;
+}
+
+.scoreBar {
+    flex: 1;
+    height: 6px;
+    background-color: var(--color-border);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.scoreBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary-light), var(--color-accent));
+    border-radius: 99px;
+    transition: width 0.5s ease;
+}
+
+.scoreValue {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    min-width: 32px;
+    text-align: right;
+}
+
+.scoreNote {
+    font-size: 0.72rem;
+    color: #aaa;
+    margin-top: var(--spacing-xs);
+}
+
+/* ─────────────────────────────────────────
+   熟練者フィードバック
+───────────────────────────────────────── */
+
+.feedbackSection {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px dashed var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.feedbackTitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.feedbackSubtitle {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}
+
+/* ボタングリッド — スマホでタップしやすいサイズ */
+.feedbackButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+}
+
+.feedbackBtn {
+    padding: 14px var(--spacing-md);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    background-color: white;
+    color: var(--color-text-main);
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1.4;
+    /* タッチ操作のしやすさ */
+    min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.feedbackBtn:hover {
+    border-color: var(--color-primary-light);
+    background-color: #f4f9f1;
+}
+
+.feedbackBtnSelected {
+    border-color: var(--color-primary);
+    background-color: var(--color-accent-light);
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+/* 補足メモ */
+.feedbackNote {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 0.88rem;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.feedbackNote:focus {
+    outline: none;
+    border-color: var(--color-primary-light);
+    box-shadow: 0 0 0 2px rgba(74, 124, 67, 0.15);
+}
+
+/* フィードバック送信ボタン */
+.feedbackSubmitBtn {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: var(--border-radius-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-height: 52px;
+}
+
+.feedbackSubmitBtn:hover:not(:disabled) {
+    background-color: var(--color-primary-light);
+}
+
+.feedbackSubmitBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* フィードバック完了バナー */
+.feedbackDone {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: #edfaf3;
+    border: 1px solid var(--color-success);
+    border-radius: var(--border-radius-sm);
+    color: var(--color-success);
+    font-size: 0.9rem;
+    font-weight: 600;
+    animation: fadeIn 0.3s ease;
+}
+
+/* スマホ向け: uploadArea のタッチターゲット拡大 */
+@media (max-width: 640px) {
+    .uploadLabel {
+        padding: var(--spacing-lg) var(--spacing-md);
+        min-height: 72px;
+    }
+
+    .submitButton,
+    .cancelButton {
+        padding: 14px 12px;
+        font-size: 0.95rem;
+        min-height: 52px;
+    }
+
+    .feedbackButtons {
+        grid-template-columns: 1fr;
+    }
+
+    .formActions {
+        flex-direction: column;
+    }
+
+    .submitButton {
+        width: 100%;
+    }
+}

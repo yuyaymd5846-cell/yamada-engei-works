@@ -8,8 +8,9 @@ generator client {
 
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model WorkManual {
@@ -134,3 +135,32 @@ model PesticideRotation {
 
   @@map("pesticide_rotations")
 }
+
+// ─── 発蕾診断 ─────────────────────────────────────────────────
+// 画像診断の結果と熟練者フィードバックを蓄積するテーブル
+// 将来的なモデル学習用トレーニングデータとして使用
+model BuddingDiagnosis {
+  id               String   @id @default(cuid())
+
+  // 画像
+  imageUrl         String   @map("image_url")   // Supabase Storage の公開URL
+
+  // AIの予測結果（仮実装）
+  predictedLabel   String   @map("predicted_label")
+  predictedScore   Float    @map("predicted_score")
+  predictedComment String   @map("predicted_comment")
+
+  // 熟練者フィードバック（後から入力）
+  expertLabel      String?  @map("expert_label")   // 正解ラベル
+  expertNote       String?  @map("expert_note")    // 補足メモ
+  feedbackAt       DateTime? @map("feedback_at")   // フィードバック日時
+
+  // 関連情報
+  workName         String?  @map("work_name")      // どの作業マニュアルから起動したか
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("budding_diagnoses")
+}
+

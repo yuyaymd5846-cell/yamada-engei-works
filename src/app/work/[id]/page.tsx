@@ -94,8 +94,8 @@ export default async function WorkDetailPage({
                     </section>
 
                     <section className={styles.section}>
-                        <h2>AI判断支援</h2>
-                        <p>現在のハウス状況を入力して、実施の可否や調整についてAIに相談できます。</p>
+                        <h2>AI発蕾診断</h2>
+                        <p>発蕾部分の写真を1枚アップロードするだけで、発蕾状態を簡易診断します。</p>
                         <AIConsultation workName={work.workName} />
                     </section>
                 </div>
