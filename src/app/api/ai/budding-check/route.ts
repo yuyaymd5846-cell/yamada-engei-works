@@ -34,25 +34,23 @@ async function analyzeBuddingWithGemini(
 
     const prompt = `
 あなたは菊（きく）の栽培に詳しい農業専門家AIです。
-この画像を見て、植物の「発蕾（はつらい）状態」を判定してください。
+植物の「発蕾（はつらい）状態」を画像から正確に判定してください。
 
-## 判定基準
-非常にシンプルに、蕾があるかどうか・順調かだけを判定します。
+## 判定の重要ルール（逆転防止）
+- **GOOD (順調)**: 
+  - 植物の成長点（真ん中の中心部）に、**小さな丸い蕾（つぼみ）**が確認できる状態。
+  - 添付された例のように、非常に小さな蕾でも中心部に見え始めていれば「GOOD」です。
+  - 蕾がはっきりと育っている場合も「GOOD」です。
+- **DELAYED (遅れ)**: 
+  - 中心部に蕾の兆候（丸い膨らみ）が**全く見られない**状態。
+  - 中心部がまだ**平らな葉や尖った葉の束だけ**である場合は、発蕾が遅れていると判断し「DELAYED」とします。
+- **UNCLEAR (不明)**: 
+  - ピンボケ、逆光、葉が重なって中心が見えないなど、物理的に判定できない時のみ。
 
-- GOOD     : 成長点（中心部）に小さな蕾が見え始めている、または既に蕾がはっきりと確認できる。少し早めの小さな蕾の状態であっても、確認できれば順調（GOOD）とみなす。
-- DELAYED  : 成長点に蕾の兆候が全く見られない、葉だけが展開していて発蕾が明確に遅れていると判断できる。
-- UNCLEAR  : 葉の陰で中心が見えない、ピンボケ、暗すぎるなどにより判定が困難。
-
-## 回答フォーマット（必ずこの形式で）
-
+## 回答フォーマット（厳守）
 LABEL: (GOOD/DELAYED/UNCLEAR のいずれか)
 SCORE: (0.00〜1.00、確信度)
-COMMENT: (日本語で30〜50文字の補足説明。「中心部に小さな蕾が確認できるため順調です」など現状を簡潔に)
-
-例：
-LABEL: GOOD
-SCORE: 0.90
-COMMENT: 中心部に小さな蕾が見え始めており、発蕾は順調に進んでいると判断できます。
+COMMENT: (日本語で判定理由を。例：「中心に小さな蕾の形成が確認できるため順調です」)
 `
 
     const imagePart = {
@@ -69,7 +67,7 @@ COMMENT: 中心部に小さな蕾が見え始めており、発蕾は順調に�
 }
 
 function parseGeminiResponse(text: string): DiagnosisResult {
-    const labelMatch = text.match(/LABEL:\s*(GOOD|SLOW|DELAYED|UNCLEAR)/i)
+    const labelMatch = text.match(/LABEL:\s*(GOOD|DELAYED|UNCLEAR)/i)
     const scoreMatch = text.match(/SCORE:\s*([\d.]+)/i)
     const commentMatch = text.match(/COMMENT:\s*(.+)/i)
 
@@ -87,14 +85,12 @@ function parseGeminiResponse(text: string): DiagnosisResult {
 // ─────────────────────────────────────────────────────────────
 //  フォールバック（APIキー未設定 or エラー時のスタブ）
 // ─────────────────────────────────────────────────────────────
-function analyzeBuddingStub(imageBuffer: Buffer): DiagnosisResult {
-    const tiers: DiagnosisResult[] = [
-        { label: LABELS.GOOD, score: 0.91, comment: '画像上では蕾形成が確認しやすい状態です（デモ）' },
-        { label: LABELS.DELAYED, score: 0.31, comment: '画像上では発蕾遅れ傾向が疑われます（デモ）' },
-        { label: LABELS.UNCLEAR, score: 0.45, comment: '別角度や別画像で再確認してください（デモ）' },
-    ]
-    const idx = Math.floor((imageBuffer.length % 100) / 34)
-    return tiers[Math.min(idx, 2)]
+function analyzeBuddingStub(_imageBuffer: Buffer): DiagnosisResult {
+    return {
+        label: '【デモモード】API設定を確認してください',
+        score: 0.5,
+        comment: '※ APIキーが未設定（または未反映）のため、現在は診断を行わずデモ表示を返しています。Vercelの環境変数設定後に再デプロイしてください。',
+    }
 }
 
 // ─────────────────────────────────────────────────────────────
