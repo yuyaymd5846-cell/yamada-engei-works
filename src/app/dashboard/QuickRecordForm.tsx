@@ -153,23 +153,29 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             // Upload photo to Supabase if exists
             if (photoFile) {
                 setUploading(true)
-                const formData = new FormData()
-                formData.append('file', photoFile)
+                try {
+                    const formData = new FormData()
+                    formData.append('file', photoFile)
 
-                const uploadRes = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData,
-                })
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData,
+                    })
 
-                if (!uploadRes.ok) {
-                    const errObj = await uploadRes.json()
-                    throw new Error(errObj.error || '画像のアップロードに失敗しました')
+                    if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json()
+                        finalPhotoUrl = uploadData.url
+                    } else {
+                        const errObj = await uploadRes.json().catch(() => ({ error: '不明なエラー' }))
+                        console.warn('Photo upload failed:', errObj.error)
+                        // Don't block - record will be saved without photo
+                    }
+                } catch (uploadErr: any) {
+                    console.warn('Photo upload error:', uploadErr.message)
+                    // Don't block - record will be saved without photo
                 }
-
-                const uploadData = await uploadRes.json()
-                finalPhotoUrl = uploadData.url
+                setUploading(false)
             }
-            setUploading(false)
 
             let totalSelectedArea = 0
             selectedGreenhouseIds.forEach(id => {
