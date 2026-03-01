@@ -245,14 +245,38 @@
     font-size: 0.75rem;
 }
 
+.urgentTargetBadge {
+    background: #fff5f5;
+    border-color: #fecaca;
+    box-shadow: 0 0 0 1px #fee2e2;
+}
+
 .targetGH {
     font-weight: 600;
     color: #444;
     margin-right: 4px;
 }
 
+.urgentTargetBadge .targetGH {
+    color: #b91c1c;
+}
+
+.urgentTag {
+    font-weight: 700;
+    color: #dc2626;
+    margin-right: 4px;
+    background-color: #fee2e2;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
 .targetTimeValue {
     color: #64748b;
+}
+
+.urgentTargetBadge .targetTimeValue {
+    color: #ef4444;
 }
 
 .cardFooter {

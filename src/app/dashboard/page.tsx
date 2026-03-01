@@ -17,11 +17,14 @@ interface WorkTarget {
         areaAcre: number
         targetTime: number
         lastBatchNumber: number | null
+        isUrgent?: boolean
+        daysPassed?: number
     }[]
     targetTotalTime: number
     actualTime: number
     requiredTime10a: number
     isCompleted: boolean
+    hasUrgentTarget?: boolean
 }
 
 async function getTodaysWork() {
@@ -90,6 +93,20 @@ async function getTodaysWork() {
     // 4. Get all work manuals for standard times and qualitative targets
     const manuals = await prisma.workManual.findMany()
     const manualMap = new Map(manuals.map(m => [m.workName, m]))
+
+    // 4.5. Get recent pesticide records to calculate days passed
+    const recentPesticides = await prisma.workRecord.findMany({
+        where: { workName: '薬剤散布' },
+        orderBy: { date: 'desc' },
+        // Fetch enough to cover all greenhouses recently
+        take: 100
+    })
+    const lastPesticideDateMap = new Map<string, Date>()
+    for (const record of recentPesticides) {
+        if (!lastPesticideDateMap.has(record.greenhouseName)) {
+            lastPesticideDateMap.set(record.greenhouseName, record.date)
+        }
+    }
 
     // 5. Calculate suggestions based on cycle phase
     const suggestions = new Map<string, string[]>()
@@ -291,7 +308,7 @@ async function getTodaysWork() {
                 }
             } else {
                 // Standard Logic for other tasks (Grouped)
-                const targets: { greenhouseId: string, greenhouseName: string, areaAcre: number, targetTime: number, lastBatchNumber: number | null }[] = []
+                const targets: { greenhouseId: string, greenhouseName: string, areaAcre: number, targetTime: number, lastBatchNumber: number | null, isUrgent?: boolean, daysPassed?: number }[] = []
                 let targetTotalTime = 0
 
                 // If it's a routine task with no specific house targeted yet, consider all houses
@@ -305,6 +322,9 @@ async function getTodaysWork() {
                         perHouseGroups.set(prefix, (perHouseGroups.get(prefix) || 0) + g.areaAcre)
                     })
                 }
+
+                // Determine if this task as a whole has urgent items
+                let hasUrgentTarget = false
 
                 for (const ghId of effectiveHouses) {
                     const greenhouse = greenhouseMap.get(ghId)
@@ -325,15 +345,61 @@ async function getTodaysWork() {
                         }
 
                         const lastBatchNumber = cycleBatchMap.get(ghId) ?? null
+
+                        // --- Pesticide Urgent Logic ---
+                        let isUrgent = false
+                        let daysPassed = 0
+
+                        // Check if this is the Pesticide task and it has NOT been completed today
+                        const thisHouseRecordsToday = todaysRecords.filter(r =>
+                            r.workName === '薬剤散布' && r.greenhouseName === greenhouse.name
+                        )
+                        const completedToday = thisHouseRecordsToday.length > 0
+
+                        if (workName === '薬剤散布' && !completedToday) {
+                            const lastDate = lastPesticideDateMap.get(greenhouse.name)
+                            if (lastDate) {
+                                // Normalize to start of day for accurate interval calculation
+                                const lastUTC = new Date(Date.UTC(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()))
+                                daysPassed = Math.floor((todayUTC.getTime() - lastUTC.getTime()) / (1000 * 60 * 60 * 24))
+
+                                const month = todayUTC.getMonth() + 1 // 1-12
+                                const isSummerInterval = month >= 6 && month <= 10
+                                const limitDays = isSummerInterval ? 5 : 7
+
+                                if (daysPassed >= limitDays) {
+                                    isUrgent = true
+                                    hasUrgentTarget = true
+                                }
+                            } else {
+                                // Never sprayed before? Very urgent.
+                                daysPassed = 999
+                                isUrgent = true
+                                hasUrgentTarget = true
+                            }
+                        }
+
                         targets.push({
                             greenhouseId: ghId,
                             greenhouseName: greenhouse.name,
                             areaAcre: greenhouse.areaAcre,
                             targetTime,
-                            lastBatchNumber
+                            lastBatchNumber,
+                            isUrgent,
+                            daysPassed
                         })
                         targetTotalTime += targetTime
                     }
+                }
+
+                // If this is an urgent pesticide task, sort targets to show urgent ones first
+                if (hasUrgentTarget) {
+                    targets.sort((a, b) => {
+                        if (a.isUrgent === b.isUrgent) {
+                            return (b.daysPassed || 0) - (a.daysPassed || 0) // longest passed first
+                        }
+                        return a.isUrgent ? -1 : 1
+                    })
                 }
 
                 finalResults.push({
@@ -342,16 +408,18 @@ async function getTodaysWork() {
                     targetTotalTime,
                     actualTime: totalActualTimeForWork, // Total for this work type
                     requiredTime10a: manual.requiredTime10a || 0,
-                    isCompleted: totalActualTimeForWork > 0
+                    isCompleted: totalActualTimeForWork > 0,
+                    hasUrgentTarget
                 })
             }
         }
     }
 
-    // Finally sort to move completed tasks to the end
+    // Finally sort to move completed tasks to the end, and urgent tasks to the top
     return finalResults.sort((a, b) => {
-        if (a.isCompleted === b.isCompleted) return 0
-        return a.isCompleted ? 1 : -1
+        if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1
+        if (a.hasUrgentTarget !== b.hasUrgentTarget) return a.hasUrgentTarget ? -1 : 1
+        return 0
     })
 }
 
@@ -435,8 +503,11 @@ export default async function DashboardPage() {
                             {wt.targets.length > 0 && (
                                 <div className={styles.targetsList}>
                                     {wt.targets.map((t: any, idx) => (
-                                        <div key={idx} className={styles.targetBadge}>
+                                        <div key={idx} className={`${styles.targetBadge} ${t.isUrgent ? styles.urgentTargetBadge : ''}`}>
                                             <span className={styles.targetGH}>{t.greenhouseName}</span>
+                                            {t.isUrgent && (
+                                                <span className={styles.urgentTag}>⚠️ {t.daysPassed === 999 ? '散布歴なし' : `${t.daysPassed}日経過`}</span>
+                                            )}
                                             <span className={styles.targetTimeValue}>{t.targetTime.toFixed(2)}h</span>
                                         </div>
                                     ))}
