@@ -30,7 +30,7 @@ async function analyzeBuddingWithGemini(
     if (!apiKey) throw new Error('GEMINI_API_KEY が設定されていません')
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `
 あなたは菊（きく）の栽培に詳しい農業専門家AIです。
