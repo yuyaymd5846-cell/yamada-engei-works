@@ -150,40 +150,30 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
             let finalPhotoUrl: string | null = null
 
-            // Upload photo to Supabase if exists
+            // Upload photo directly to Supabase from browser (bypass Vercel)
             if (photoFile) {
                 setUploading(true)
                 try {
-                    // Convert file to base64
-                    const reader = new FileReader()
-                    const base64Promise = new Promise<string>((resolve, reject) => {
-                        reader.onload = () => resolve(reader.result as string)
-                        reader.onerror = error => reject(error)
-                        reader.readAsDataURL(photoFile)
-                    })
-                    const base64Data = await base64Promise
+                    const { createClient } = await import('@supabase/supabase-js')
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+                    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                    const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-                    // Extract just the base64 string, removing the data URL prefix
-                    const base64String = base64Data.split(',')[1]
+                    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
 
-                    const uploadRes = await fetch('/api/upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            image: base64String,
-                            name: photoFile.name,
-                            type: photoFile.type
-                        }),
-                    })
+                    const { data, error: uploadError } = await supabase
+                        .storage
+                        .from('work-photos')
+                        .upload(fileName, photoFile, {
+                            contentType: photoFile.type || 'image/jpeg',
+                            upsert: true
+                        })
 
-                    if (uploadRes.ok) {
-                        const uploadData = await uploadRes.json()
-                        finalPhotoUrl = uploadData.url
+                    if (uploadError) {
+                        console.warn('Photo upload failed:', uploadError.message)
                     } else {
-                        const errObj = await uploadRes.json().catch(() => ({ error: '不明なエラー' }))
-                        console.warn('Photo upload failed:', errObj.error)
+                        const { data: publicUrlData } = supabase.storage.from('work-photos').getPublicUrl(fileName)
+                        finalPhotoUrl = publicUrlData.publicUrl
                     }
                 } catch (uploadErr: any) {
                     console.warn('Photo upload error:', uploadErr.message)
