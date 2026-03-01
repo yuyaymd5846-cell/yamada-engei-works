@@ -123,7 +123,6 @@ export default function AIConsultation({ workName }: { workName: string }) {
                             ref={fileInputRef}
                             type="file"
                             accept="image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp,.jpg,.jpeg,.png,.heic,.heif,.webp"
-                            capture="environment"
                             onChange={handleFileChange}
                             className={styles.fileInput}
                         />
