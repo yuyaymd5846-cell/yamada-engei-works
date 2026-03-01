@@ -437,6 +437,22 @@ export default async function DashboardPage() {
     const todaysWorkTargets = await getTodaysWork()
     const riskAlerts = await getRiskAlerts()
 
+    // --- For Trouble Logging Section ---
+    const allGreenhouses = await prisma.greenhouse.findMany()
+    const todayUTC = new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()))
+    const activeCycles = await prisma.cropCycle.findMany({
+        where: { OR: [{ harvestEnd: null }, { harvestEnd: { gte: todayUTC } }] }
+    })
+    const cycleBatchMap = new Map()
+    for (const c of activeCycles) cycleBatchMap.set(c.greenhouseId, c.batchNumber)
+
+    const ghForTrouble = allGreenhouses.map(g => ({
+        id: g.id,
+        name: g.name,
+        areaAcre: g.areaAcre,
+        lastBatchNumber: cycleBatchMap.get(g.id) || null
+    }))
+
     return (
         <div className={styles.dashboard}>
             <h1 className={styles.pageTitle}>ダッシュボード</h1>
@@ -448,6 +464,23 @@ export default async function DashboardPage() {
                     weekday: 'short'
                 }).format(new Date())}
             </div>
+
+            {/* Trouble Logging Section */}
+            <section className={styles.section} style={{ marginBottom: '1rem' }}>
+                <div style={{ background: '#fff1f2', borderRadius: '12px', padding: '16px', border: '1px solid #fecaca' }}>
+                    <h2 style={{ fontSize: '1.2rem', color: '#be123c', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>⚠️</span> トラブル・例外対応の記録
+                    </h2>
+                    <p style={{ fontSize: '0.9rem', color: '#881337', marginBottom: '16px' }}>
+                        病害虫の発見や、想定外の例外作業を行った際の記録と写真を残します。
+                    </p>
+                    <QuickRecordForm
+                        workName="トラブル・観察メモ"
+                        suggestedGreenhouses={ghForTrouble}
+                        defaultTime10a={0}
+                    />
+                </div>
+            </section>
             {riskAlerts.length > 0 && (
                 <section className={styles.section}>
                     <h2 className={styles.sectionTitle} style={{ color: 'var(--color-danger)' }}>

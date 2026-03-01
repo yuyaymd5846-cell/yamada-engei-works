@@ -19,6 +19,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     // Form State
     const [selectedGreenhouseIds, setSelectedGreenhouseIds] = useState<string[]>([])
     const [timeHours, setTimeHours] = useState('')
+    const [note, setNote] = useState('')
 
     // Photo State
     const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -147,8 +148,28 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                 throw new Error('ハウスが選択されていません')
             }
 
-            // Use the base64 preview directly as photoUrl (no server upload needed)
-            const photoUrl = photoPreview
+            let finalPhotoUrl: string | null = null
+
+            // Upload photo to Supabase if exists
+            if (photoFile) {
+                setUploading(true)
+                const formData = new FormData()
+                formData.append('file', photoFile)
+
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                })
+
+                if (!uploadRes.ok) {
+                    const errObj = await uploadRes.json()
+                    throw new Error(errObj.error || '画像のアップロードに失敗しました')
+                }
+
+                const uploadData = await uploadRes.json()
+                finalPhotoUrl = uploadData.url
+            }
+            setUploading(false)
 
             let totalSelectedArea = 0
             selectedGreenhouseIds.forEach(id => {
@@ -169,7 +190,8 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                     batchNumber: gh.lastBatchNumber ?? null,
                     spentTime: hoursForHouse,
                     areaAcre: gh.areaAcre,
-                    photoUrl: photoUrl,
+                    note: note,
+                    photoUrl: finalPhotoUrl,
                     date: new Date().toISOString()
                 }
             })
@@ -187,6 +209,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             // Success
             setIsOpen(false)
             setTimeHours('')
+            setNote('')
             removePhoto()
             router.refresh()
 
@@ -271,9 +294,21 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
-                        capture="environment"
                         onChange={handlePhotoSelect}
                         style={{ display: 'none' }}
+                    />
+                </div>
+            </div>
+
+            <div className={styles.row}>
+                <div className={styles.group} style={{ flex: 1 }}>
+                    <label>備考 / トラブル内容 (任意)</label>
+                    <textarea
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="例: アザミウマを発見、〇〇剤を重点的に散布した"
+                        className={styles.textarea}
+                        rows={2}
                     />
                 </div>
             </div>
