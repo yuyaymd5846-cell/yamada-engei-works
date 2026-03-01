@@ -170,13 +170,28 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                         })
 
                     if (uploadError) {
-                        console.warn('Photo upload failed:', uploadError.message)
+                        console.warn('Storage upload failed, falling back to database storage:', uploadError.message)
+
+                        // FALLBACK: Store as base64 in database
+                        const reader = new FileReader()
+                        const base64Promise = new Promise<string>((resolve) => {
+                            reader.onload = () => resolve(reader.result as string)
+                            reader.readAsDataURL(photoFile)
+                        })
+                        finalPhotoUrl = await base64Promise
                     } else {
                         const { data: publicUrlData } = supabase.storage.from('work-photos').getPublicUrl(fileName)
                         finalPhotoUrl = publicUrlData.publicUrl
                     }
                 } catch (uploadErr: any) {
-                    console.warn('Photo upload error:', uploadErr.message)
+                    console.warn('Photo upload error, falling back to database storage:', uploadErr.message)
+                    // FALLBACK: Store as base64 in database
+                    const reader = new FileReader()
+                    const base64Promise = new Promise<string>((resolve) => {
+                        reader.onload = () => resolve(reader.result as string)
+                        reader.readAsDataURL(photoFile)
+                    })
+                    finalPhotoUrl = await base64Promise
                 }
                 setUploading(false)
             }
