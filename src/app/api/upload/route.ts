@@ -2,17 +2,10 @@ import { NextResponse } from 'next/server'
 
 const BUCKET = 'work-photos'
 
-// Allow larger body for file uploads
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-}
-
 // GET endpoint to verify deployment version
 export async function GET() {
     return NextResponse.json({
-        version: '2025-02-21-v3',
+        version: '2025-03-01-v4',
         hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
@@ -38,6 +31,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 })
         }
 
+        console.log(`[Upload] Received file: ${file.name}, size: ${file.size}, type: ${file.type}`)
+
         // Generate unique filename
         const timestamp = Date.now()
         const fileName = `${timestamp}_${Math.random().toString(36).slice(2, 8)}.jpg`
@@ -46,6 +41,23 @@ export async function POST(request: Request) {
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
+        // Ensure bucket exists (auto-create if missing)
+        const bucketCheckUrl = `${supabaseUrl}/storage/v1/bucket/${BUCKET}`
+        const bucketRes = await fetch(bucketCheckUrl, {
+            headers: { 'Authorization': `Bearer ${serviceRoleKey}` }
+        })
+        if (bucketRes.status === 404) {
+            console.log(`[Upload] Bucket "${BUCKET}" not found, creating...`)
+            await fetch(`${supabaseUrl}/storage/v1/bucket`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true })
+            })
+        }
+
         // Upload directly via Supabase Storage REST API
         const uploadUrl = `${supabaseUrl}/storage/v1/object/${BUCKET}/${fileName}`
 
@@ -53,14 +65,15 @@ export async function POST(request: Request) {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'image/jpeg',
-                'x-upsert': 'false'
+                'Content-Type': file.type || 'image/jpeg',
+                'x-upsert': 'true'
             },
             body: buffer
         })
 
         if (!uploadRes.ok) {
             const errText = await uploadRes.text()
+            console.error(`[Upload] Supabase error (${uploadRes.status}):`, errText)
             return NextResponse.json(
                 { error: `Supabase error (${uploadRes.status}): ${errText}` },
                 { status: 500 }
@@ -69,12 +82,15 @@ export async function POST(request: Request) {
 
         // Construct public URL
         const publicUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${fileName}`
+        console.log(`[Upload] Success: ${publicUrl}`)
 
         return NextResponse.json({ url: publicUrl })
     } catch (error: any) {
+        console.error('[Upload] Server error:', error)
         return NextResponse.json(
             { error: `Server error: ${error.message}` },
             { status: 500 }
         )
     }
 }
+

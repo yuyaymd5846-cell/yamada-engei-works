@@ -217,6 +217,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             setError(err.message)
         } finally {
             setIsSubmitting(false)
+            setUploading(false)
         }
     }
 
