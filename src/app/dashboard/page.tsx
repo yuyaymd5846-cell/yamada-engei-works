@@ -311,8 +311,9 @@ async function getTodaysWork() {
                 const targets: { greenhouseId: string, greenhouseName: string, areaAcre: number, targetTime: number, lastBatchNumber: number | null, isUrgent?: boolean, daysPassed?: number }[] = []
                 let targetTotalTime = 0
 
-                // If it's a routine task with no specific house targeted yet, consider all houses
-                const effectiveHouses = ghIds.length > 0 ? ghIds : allGreenhouses.map(g => g.id)
+                // If it's a routine task with no specific house targeted yet, consider only ACTIVE houses
+                const activeGreenhouseIds = Array.from(new Set(activeCycles.map(c => c.greenhouseId)))
+                const effectiveHouses = ghIds.length > 0 ? ghIds : activeGreenhouseIds
 
                 // Pre-calculate groups for Irrigation and Pesticide Spraying proration
                 const perHouseGroups = new Map<string, number>()
