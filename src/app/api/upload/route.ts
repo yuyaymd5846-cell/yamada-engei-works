@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const BUCKET = 'work-photos'
 
 // GET endpoint to verify deployment version
 export async function GET() {
     return NextResponse.json({
-        version: '2025-03-01-v5',
+        version: '2025-03-01-v6-supabase-client',
         hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
             )
         }
 
+        const supabase = createClient(supabaseUrl, serviceRoleKey)
+
         const formData = await request.formData()
         const file = formData.get('file') as File
 
@@ -36,43 +39,33 @@ export async function POST(request: Request) {
         // Generate unique filename
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
 
-        // Get arrayBuffer (same pattern as working budding-check upload)
+        // Get arrayBuffer natively and convert to Buffer for robust SDK handling
         const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
 
-        // Upload directly via Supabase Storage REST API
-        const uploadUrl = `${supabaseUrl}/storage/v1/object/${BUCKET}/${fileName}`
-        console.log(`[Upload] Uploading to: ${uploadUrl}`)
+        console.log(`[Upload] Uploading via Supabase Client to: ${BUCKET}/${fileName}`)
 
-        const uploadRes = await fetch(uploadUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': file.type || 'image/jpeg',
-                'x-upsert': 'true'
-            },
-            body: arrayBuffer
-        })
+        // Upload using official SDK
+        const { data, error } = await supabase
+            .storage
+            .from(BUCKET)
+            .upload(fileName, buffer, {
+                contentType: file.type || 'image/jpeg',
+                upsert: true
+            })
 
-        if (!uploadRes.ok) {
-            const errText = await uploadRes.text()
-            console.error(`[Upload] Supabase error (${uploadRes.status}):`, errText)
-
-            // If bucket doesn't exist, give a helpful message
-            if (uploadRes.status === 404 || errText.includes('not found')) {
-                return NextResponse.json(
-                    { error: `バケット "${BUCKET}" が存在しません。Supabase ダッシュボード → Storage からバケットを作成してください。` },
-                    { status: 500 }
-                )
-            }
-
+        if (error) {
+            console.error(`[Upload] Supabase SDK error:`, error)
             return NextResponse.json(
-                { error: `Supabase error (${uploadRes.status}): ${errText}` },
+                { error: `Supabase error: ${error.message}` },
                 { status: 500 }
             )
         }
 
         // Construct public URL
-        const publicUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${fileName}`
+        const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(fileName)
+        const publicUrl = publicUrlData.publicUrl
+
         console.log(`[Upload] Success: ${publicUrl}`)
 
         return NextResponse.json({ url: publicUrl })
