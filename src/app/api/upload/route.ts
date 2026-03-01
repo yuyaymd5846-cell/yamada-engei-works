@@ -6,7 +6,7 @@ const BUCKET = 'work-photos'
 // GET endpoint to verify deployment version
 export async function GET() {
     return NextResponse.json({
-        version: '2025-03-01-v6-supabase-client',
+        version: '2025-03-01-v7-json-base64',
         hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
@@ -27,21 +27,21 @@ export async function POST(request: Request) {
 
         const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-        const formData = await request.formData()
-        const file = formData.get('file') as File
+        // Parse as JSON instead of FormData
+        const body = await request.json()
+        const { image: base64String, name, type } = body
 
-        if (!file) {
-            return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+        if (!base64String) {
+            return NextResponse.json({ error: 'No image data provided' }, { status: 400 })
         }
 
-        console.log(`[Upload] file: ${file.name}, size: ${file.size}, type: ${file.type}`)
+        console.log(`[Upload] Received JSON payload. name: ${name}, type: ${type}`)
 
         // Generate unique filename
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
 
-        // Get arrayBuffer natively and convert to Buffer for robust SDK handling
-        const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+        // Convert Base64 string back to Buffer
+        const buffer = Buffer.from(base64String, 'base64')
 
         console.log(`[Upload] Uploading via Supabase Client to: ${BUCKET}/${fileName}`)
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
             .storage
             .from(BUCKET)
             .upload(fileName, buffer, {
-                contentType: file.type || 'image/jpeg',
+                contentType: type || 'image/jpeg',
                 upsert: true
             })
 

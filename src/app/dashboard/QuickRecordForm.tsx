@@ -154,12 +154,28 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             if (photoFile) {
                 setUploading(true)
                 try {
-                    const formData = new FormData()
-                    formData.append('file', photoFile)
+                    // Convert file to base64
+                    const reader = new FileReader()
+                    const base64Promise = new Promise<string>((resolve, reject) => {
+                        reader.onload = () => resolve(reader.result as string)
+                        reader.onerror = error => reject(error)
+                        reader.readAsDataURL(photoFile)
+                    })
+                    const base64Data = await base64Promise
+
+                    // Extract just the base64 string, removing the data URL prefix
+                    const base64String = base64Data.split(',')[1]
 
                     const uploadRes = await fetch('/api/upload', {
                         method: 'POST',
-                        body: formData,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            image: base64String,
+                            name: photoFile.name,
+                            type: photoFile.type
+                        }),
                     })
 
                     if (uploadRes.ok) {
@@ -168,11 +184,9 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                     } else {
                         const errObj = await uploadRes.json().catch(() => ({ error: '不明なエラー' }))
                         console.warn('Photo upload failed:', errObj.error)
-                        // Don't block - record will be saved without photo
                     }
                 } catch (uploadErr: any) {
                     console.warn('Photo upload error:', uploadErr.message)
-                    // Don't block - record will be saved without photo
                 }
                 setUploading(false)
             }
