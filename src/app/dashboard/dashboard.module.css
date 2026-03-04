@@ -340,3 +340,45 @@
     background-color: #c09d30;
     box-shadow: var(--shadow-lg);
 }
+
+/* Task check buttons */
+.checkRow {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.doneBtn {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1.5px solid #6ee7b7;
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+}
+
+.doneBtn:hover {
+    background: #059669;
+    color: white;
+    border-color: #059669;
+}
+
+.undoneBtn {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.undoneBtn:hover {
+    background: #f1f5f9;
+    color: #64748b;
+}

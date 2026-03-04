@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import styles from './dashboard.module.css'
 import QuickRecordForm from './QuickRecordForm'
+import DashboardWorkCard from './DashboardWorkCard'
 
 
 interface WorkTarget {
@@ -74,6 +75,23 @@ async function getTodaysWork() {
         actualTimeMap.set(baseName, current + record.spentTime)
     })
 
+    // 2.5 Get ALL historical records for one-time tasks to hide them if already done in the past
+    // Focusing on specific one-time tasks: 発蕾確認, ヤゴかき, 頂花取り
+    const oneTimeTasks = ['発蕾確認', 'ヤゴかき', '頂花取り', '杭打ち', '圃場準備', '施肥', 'ハダニ特別防除', '片付け']
+    const historyRecords = await prisma.workRecord.findMany({
+        where: {
+            workName: { in: oneTimeTasks },
+            date: { lt: todayStartJST } // Only records BEFORE today
+        }
+    })
+
+    // Create a set for quick lookup: "WorkName|GreenhouseName|BatchNumber"
+    const completedHistory = new Set<string>()
+    historyRecords.forEach(r => {
+        const key = `${r.workName}|${r.greenhouseName}|${r.batchNumber || ''}`
+        completedHistory.add(key)
+    })
+
     // 3. Get active schedules from Gantt chart to refine visibility
     const activeSchedules = await prisma.cropSchedule.findMany({
         where: {
@@ -111,6 +129,18 @@ async function getTodaysWork() {
     // 5. Calculate suggestions based on cycle phase
     const suggestions = new Map<string, string[]>()
     const addTarget = (workName: string, greenhouseId: string) => {
+        const greenhouse = greenhouseMap.get(greenhouseId)
+        const batchNumber = cycleBatchMap.get(greenhouseId)
+
+        // If it's a one-time task, check if it was ALREADY completed in history
+        if (oneTimeTasks.includes(workName) && greenhouse) {
+            const historyKey = `${workName}|${greenhouse.name}|${batchNumber || ''}`
+            if (completedHistory.has(historyKey)) {
+                // Already done in the past, skip adding to today's suggestions
+                return
+            }
+        }
+
         const existing = suggestions.get(workName) || []
         if (!existing.includes(greenhouseId)) {
             suggestions.set(workName, [...existing, greenhouseId])
@@ -504,71 +534,26 @@ export default async function DashboardPage() {
                 <h2 className={styles.sectionTitle}>今日の作業候補</h2>
                 <div className={styles.suggestionsGrid}>
                     {todaysWorkTargets.map((wt, i) => (
-                        <div key={i} className={`${styles.workCard} ${wt.isCompleted ? styles.completedCard : ''}`}>
-                            <div className={styles.cardHeader}>
-                                <div className={styles.workTitleRow}>
-                                    <h3 className={styles.workName}>{wt.displayWorkName || wt.manual.workName}</h3>
-                                    {wt.isCompleted && (
-                                        <span className={styles.completedBadge}>✅ 完了</span>
-                                    )}
-                                </div>
-                                <span className={styles.stageLabel}>{wt.manual.stage}</span>
-                            </div>
-                            <p className={styles.purpose}>{wt.manual.purpose}</p>
-
-                            <div className={styles.manualTarget}>
-                                <span className={styles.targetIcon}>🎯</span>
-                                <span className={styles.targetLabel}>目標:</span>
-                                <span className={styles.targetText}>{wt.manual.timingStandard}</span>
-                            </div>
-
-                            <div className={styles.targetComparison}>
-                                <div className={styles.targetBox}>
-                                    <span className={styles.subText}>目標合計: {wt.targetTotalTime > 0 ? `${wt.targetTotalTime.toFixed(2)}h` : '-'}</span>
-                                </div>
-                                <div className={styles.targetBox}>
-                                    <span className={styles.subText}>本日の実績: </span>
-                                    <span className={styles.actualTotal} data-complete={wt.isCompleted}>
-                                        {wt.actualTime.toFixed(2)}h
-                                    </span>
-                                </div>
-                            </div>
-
-                            {wt.targets.length > 0 && (
-                                <div className={styles.targetsList}>
-                                    {wt.targets.map((t: any, idx) => (
-                                        <div key={idx} className={`${styles.targetBadge} ${t.isUrgent ? styles.urgentTargetBadge : ''}`}>
-                                            <span className={styles.targetGH}>{t.greenhouseName}</span>
-                                            {t.isUrgent && (
-                                                <span className={styles.urgentTag}>⚠️ {t.daysPassed === 999 ? '散布歴なし' : `${t.daysPassed}日経過`}</span>
-                                            )}
-                                            <span className={styles.targetTimeValue}>{t.targetTime.toFixed(2)}h</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div className={styles.cardFooter}>
-                                <div className={styles.footerInfo}>
-                                    {wt.requiredTime10a > 0 ? (
-                                        <span className={styles.standardTime}>
-                                            目安: {wt.requiredTime10a}h/{(wt.manual.workName === 'かん水' || wt.manual.workName === '薬剤散布') ? '棟' : '10a'}
-                                        </span>
-                                    ) : <span />}
-                                    <Link href={`/work/${wt.manual.id}`} className={styles.link}>📖 手順を見る</Link>
-                                </div>
-                                <QuickRecordForm
-                                    workName={wt.manual.workName}
-                                    suggestedGreenhouses={wt.targets.map((t: any) => ({
-                                        id: t.greenhouseId,
-                                        name: t.greenhouseName,
-                                        areaAcre: t.areaAcre,
-                                        lastBatchNumber: t.lastBatchNumber
-                                    }))}
-                                    defaultTime10a={wt.requiredTime10a}
-                                />
-                            </div>
-                        </div>
+                        <DashboardWorkCard
+                            key={i}
+                            workTarget={{
+                                manual: {
+                                    id: wt.manual.id,
+                                    workName: wt.manual.workName,
+                                    stage: wt.manual.stage,
+                                    purpose: wt.manual.purpose,
+                                    timingStandard: wt.manual.timingStandard,
+                                    requiredTime10a: wt.manual.requiredTime10a,
+                                },
+                                displayWorkName: wt.displayWorkName,
+                                targets: wt.targets,
+                                targetTotalTime: wt.targetTotalTime,
+                                actualTime: wt.actualTime,
+                                requiredTime10a: wt.requiredTime10a,
+                                isCompleted: wt.isCompleted,
+                                hasUrgentTarget: wt.hasUrgentTarget,
+                            }}
+                        />
                     ))}
                 </div>
             </section>

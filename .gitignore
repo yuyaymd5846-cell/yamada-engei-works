@@ -34,3 +34,5 @@ verify_manuals.ts
 /*.json
 !package.json
 !tsconfig.json
+
+.vercel

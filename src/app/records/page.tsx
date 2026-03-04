@@ -38,9 +38,16 @@ export default function WorkRecordsPage() {
     const [filterGH, setFilterGH] = useState('all')
     const [filterWork, setFilterWork] = useState('all')
 
+    const handleFilterGH = (v: string) => { setFilterGH(v); setCurrentPage(1) }
+    const handleFilterWork = (v: string) => { setFilterWork(v); setCurrentPage(1) }
+
     // Sort state
     const [sortKey, setSortKey] = useState<SortKey>('date')
     const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+    // Pagination state
+    const ITEMS_PER_PAGE = 50
+    const [currentPage, setCurrentPage] = useState(1)
 
     const fetchRecords = async () => {
         try {
@@ -72,6 +79,7 @@ export default function WorkRecordsPage() {
         const [y, m] = filterMonth.split('-').map(Number)
         const d = new Date(y, m - 1 + delta, 1)
         setFilterMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+        setCurrentPage(1)
     }
 
     const monthLabel = useMemo(() => {
@@ -138,7 +146,15 @@ export default function WorkRecordsPage() {
             setSortKey(key)
             setSortDir('desc')
         }
+        setCurrentPage(1)
     }
+
+    // Pagination derived values
+    const totalPages = Math.ceil(sortedRecords.length / ITEMS_PER_PAGE)
+    const pagedRecords = sortedRecords.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    )
 
     const sortIndicator = (key: SortKey) => {
         if (sortKey !== key) return ''
@@ -395,7 +411,7 @@ export default function WorkRecordsPage() {
                 </div>
                 <select
                     value={filterGH}
-                    onChange={e => setFilterGH(e.target.value)}
+                    onChange={e => handleFilterGH(e.target.value)}
                     className={styles.filterSelect}
                 >
                     <option value="all">全ハウス</option>
@@ -403,7 +419,7 @@ export default function WorkRecordsPage() {
                 </select>
                 <select
                     value={filterWork}
-                    onChange={e => setFilterWork(e.target.value)}
+                    onChange={e => handleFilterWork(e.target.value)}
                     className={styles.filterSelect}
                 >
                     <option value="all">全作業</option>
@@ -472,7 +488,7 @@ export default function WorkRecordsPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedRecords.map(record => {
+                        {pagedRecords.map(record => {
                             const isEditing = editingId === record.id
                             return (
                                 <tr key={record.id}>
@@ -563,9 +579,35 @@ export default function WorkRecordsPage() {
                 </table>
             </div>
 
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className={styles.pagination}>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className={styles.pageBtn}
+                    >
+                        ◀
+                    </button>
+                    <span className={styles.pageInfo}>
+                        {currentPage} / {totalPages} ページ
+                        <span className={styles.pageRange}>
+                            （{(currentPage - 1) * ITEMS_PER_PAGE + 1}〜{Math.min(currentPage * ITEMS_PER_PAGE, sortedRecords.length)}件 / 全{sortedRecords.length}件）
+                        </span>
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className={styles.pageBtn}
+                    >
+                        ▶
+                    </button>
+                </div>
+            )}
+
             {/* Mobile card view */}
             <div className={styles.mobileCards}>
-                {sortedRecords.map(record => {
+                {pagedRecords.map(record => {
                     const isEditing = editingId === record.id
                     return (
                         <div key={record.id} className={`${styles.mobileCard} ${isEditing ? styles.mobileCardEditing : ''}`}>
@@ -642,6 +684,27 @@ export default function WorkRecordsPage() {
                     <div className={styles.empty}>{monthLabel}の実績はありません</div>
                 )}
             </div>
+
+            {/* Mobile pagination */}
+            {totalPages > 1 && (
+                <div className={styles.pagination}>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className={styles.pageBtn}
+                    >
+                        ◀ 前へ
+                    </button>
+                    <span className={styles.pageInfo}>{currentPage} / {totalPages}</span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className={styles.pageBtn}
+                    >
+                        次へ ▶
+                    </button>
+                </div>
+            )}
 
             {/* Lightbox */}
             {lightboxUrl && (
