@@ -108,6 +108,19 @@ async function getTodaysWork() {
             .map(s => s.greenhouseId)
     )
 
+    // 3.5 Prepare maps for greenhouse lookup and batch numbers
+    const allGreenhouses = await prisma.greenhouse.findMany()
+    const greenhouseMap = new Map(allGreenhouses.map(g => [g.id, g]))
+
+    const cycleBatchMap = new Map<string, number | null>()
+    for (const cycle of activeCycles) {
+        // Use the most relevant active cycle per greenhouse (latest planting date takes precedence)
+        const existing = cycleBatchMap.get(cycle.greenhouseId)
+        if (existing === undefined) {
+            cycleBatchMap.set(cycle.greenhouseId, cycle.batchNumber)
+        }
+    }
+
     // 4. Get all work manuals for standard times and qualitative targets
     const manuals = await prisma.workManual.findMany()
     const manualMap = new Map(manuals.map(m => [m.workName, m]))
@@ -274,19 +287,7 @@ async function getTodaysWork() {
         return aIndex - bIndex // Both routine, sort by routineOrder
     })
 
-    const allGreenhouses = await prisma.greenhouse.findMany()
-    const greenhouseMap = new Map(allGreenhouses.map(g => [g.id, g]))
-
-    // Get batch number from active CropCycles (schedule) for each greenhouse
-    // This ensures dashboard/QuickRecordForm uses the same batch number as the Gantt chart
-    const cycleBatchMap = new Map<string, number | null>()
-    for (const cycle of activeCycles) {
-        // Use the most relevant active cycle per greenhouse (latest planting date takes precedence)
-        const existing = cycleBatchMap.get(cycle.greenhouseId)
-        if (existing === undefined) {
-            cycleBatchMap.set(cycle.greenhouseId, cycle.batchNumber)
-        }
-    }
+    // Maps already prepared above
 
     for (const workName of allWorkNames) {
         const ghIds = suggestions.get(workName) || []
