@@ -9,18 +9,29 @@ import QuickRecordForm from './QuickRecordForm'
 import DashboardWorkCard from './DashboardWorkCard'
 
 
+interface ManualData {
+    id: string
+    workName: string
+    stage: string
+    purpose: string
+    timingStandard: string
+    requiredTime10a: number
+}
+
+interface TargetItem {
+    greenhouseId: string
+    greenhouseName: string
+    areaAcre: number
+    targetTime: number
+    lastBatchNumber: number | null
+    isUrgent?: boolean
+    daysPassed?: number
+}
+
 interface WorkTarget {
-    manual: any
+    manual: ManualData
     displayWorkName?: string
-    targets: {
-        greenhouseId: string
-        greenhouseName: string
-        areaAcre: number
-        targetTime: number
-        lastBatchNumber: number | null
-        isUrgent?: boolean
-        daysPassed?: number
-    }[]
+    targets: TargetItem[]
     targetTotalTime: number
     actualTime: number
     requiredTime10a: number
@@ -497,12 +508,12 @@ export default async function DashboardPage() {
             </div>
 
             {/* Trouble Logging Section */}
-            <section className={styles.section} style={{ marginBottom: '1rem' }}>
-                <div style={{ background: '#fff1f2', borderRadius: '12px', padding: '16px', border: '1px solid #fecaca' }}>
-                    <h2 style={{ fontSize: '1.2rem', color: '#be123c', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <section className={styles.section}>
+                <div className={styles.troubleSection}>
+                    <h2 className={styles.troubleTitle}>
                         <span>⚠️</span> トラブル・例外対応の記録
                     </h2>
-                    <p style={{ fontSize: '0.9rem', color: '#881337', marginBottom: '16px' }}>
+                    <p className={styles.troubleDescription}>
                         病害虫の発見や、想定外の例外作業を行った際の記録と写真を残します。
                     </p>
                     <QuickRecordForm
@@ -514,7 +525,7 @@ export default async function DashboardPage() {
             </section>
             {riskAlerts.length > 0 && (
                 <section className={styles.section}>
-                    <h2 className={styles.sectionTitle} style={{ color: 'var(--color-danger)' }}>
+                    <h2 className={`${styles.sectionTitle} ${styles.dangerTitle}`}>
                         ⚠️ リスクアラート
                     </h2>
                     <div className={styles.cardGrid}>

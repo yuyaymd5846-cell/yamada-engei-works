@@ -382,3 +382,30 @@
     background: #f1f5f9;
     color: #64748b;
 }
+
+/* トラブル・例外対応セクション */
+.troubleSection {
+    background: #fff1f2;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #fecaca;
+}
+
+.troubleTitle {
+    font-size: 1.2rem;
+    color: #be123c;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.troubleDescription {
+    font-size: 0.9rem;
+    color: #881337;
+    margin-bottom: 16px;
+}
+
+.dangerTitle {
+    color: var(--color-danger);
+}
