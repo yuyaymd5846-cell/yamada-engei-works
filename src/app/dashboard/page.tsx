@@ -311,7 +311,11 @@ async function getTodaysWork() {
             // Special handling: Split into individual cards for Harvest and Shipping tasks
             const tasksToSplit = ['収穫', '出荷調整（手作業）', '出荷']
             if (tasksToSplit.includes(workName)) {
-                const effectiveHouses = ghIds.length > 0 ? ghIds : []
+                let effectiveHouses = ghIds.length > 0 ? ghIds : []
+                // Sort by orderIndex
+                effectiveHouses = allGreenhouses
+                    .filter(g => effectiveHouses.includes(g.id))
+                    .map(g => g.id)
 
                 for (const ghId of effectiveHouses) {
                     const greenhouse = greenhouseMap.get(ghId)
@@ -357,7 +361,12 @@ async function getTodaysWork() {
 
                 // If it's a routine task with no specific house targeted yet, consider only ACTIVE houses
                 const activeGreenhouseIds = Array.from(new Set(activeCycles.map(c => c.greenhouseId)))
-                const effectiveHouses = ghIds.length > 0 ? ghIds : activeGreenhouseIds
+                let effectiveHouses = ghIds.length > 0 ? ghIds : activeGreenhouseIds
+
+                // Sort by orderIndex
+                effectiveHouses = allGreenhouses
+                    .filter(g => effectiveHouses.includes(g.id))
+                    .map(g => g.id)
 
                 // Pre-calculate groups for Irrigation and Pesticide Spraying proration
                 const perHouseGroups = new Map<string, number>()
@@ -444,7 +453,10 @@ async function getTodaysWork() {
                 if (hasUrgentTarget) {
                     targets.sort((a, b) => {
                         if (a.isUrgent === b.isUrgent) {
-                            return (b.daysPassed || 0) - (a.daysPassed || 0) // longest passed first
+                            // Tie-breaker: sort by orderIndex (found in greenhouseMap)
+                            const gA = greenhouseMap.get(a.greenhouseId)
+                            const gB = greenhouseMap.get(b.greenhouseId)
+                            return (gA?.orderIndex ?? 0) - (gB?.orderIndex ?? 0)
                         }
                         return a.isUrgent ? -1 : 1
                     })
