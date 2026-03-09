@@ -100,6 +100,8 @@ export default function AIConsultation({ workName }: { workName: string }) {
         return styles.labelUnknown
     }
 
+    if (workName !== '発蕾確認') return null
+
     if (!isOpen) {
         return (
             <button onClick={() => setIsOpen(true)} className={styles.aiButton}>

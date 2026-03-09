@@ -93,11 +93,13 @@ export default async function WorkDetailPage({
                         </div>
                     </section>
 
-                    <section className={styles.section}>
-                        <h2>AI発蕾診断</h2>
-                        <p>発蕾部分の写真を1枚アップロードするだけで、発蕾状態を簡易診断します。</p>
-                        <AIConsultation workName={work.workName} />
-                    </section>
+                    {work.workName === '発蕾確認' && (
+                        <section className={styles.section}>
+                            <h2>AI発蕾診断</h2>
+                            <p>発蕾部分の写真を1枚アップロードするだけで、発蕾状態を簡易診断します。</p>
+                            <AIConsultation workName={work.workName} />
+                        </section>
+                    )}
                 </div>
 
                 <div className={styles.sidebar}>
