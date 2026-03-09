@@ -120,7 +120,9 @@ async function getTodaysWork() {
     )
 
     // 3.5 Prepare maps for greenhouse lookup and batch numbers
-    const allGreenhouses = await prisma.greenhouse.findMany()
+    const allGreenhouses = await prisma.greenhouse.findMany({
+        orderBy: { orderIndex: 'asc' }
+    })
     const greenhouseMap = new Map(allGreenhouses.map(g => [g.id, g]))
 
     const cycleBatchMap = new Map<string, number | null>()
@@ -375,7 +377,10 @@ async function getTodaysWork() {
                         const timeVal = manual.requiredTime10a || 0
                         let targetTime = 0
 
-                        if (workName === 'かん水' || workName === '薬剤散布') {
+                        if (workName === '栽培管理') {
+                            // "Cultivation Management": exactly 0.25h per house
+                            targetTime = 0.25
+                        } else if (workName === 'かん水' || workName === '薬剤散布') {
                             // "Irrigation" and "Pesticide Spraying": timeVal is treated as "Time per House (Group)"
                             // Prorate based on area within the group
                             const prefix = greenhouse.name.split('-')[0]
@@ -480,7 +485,9 @@ export default async function DashboardPage() {
     const riskAlerts = await getRiskAlerts()
 
     // --- For Trouble Logging Section ---
-    const allGreenhouses = await prisma.greenhouse.findMany()
+    const allGreenhouses = await prisma.greenhouse.findMany({
+        orderBy: { orderIndex: 'asc' }
+    })
     const todayUTC = new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()))
     const activeCycles = await prisma.cropCycle.findMany({
         where: { OR: [{ harvestEnd: null }, { harvestEnd: { gte: todayUTC } }] }

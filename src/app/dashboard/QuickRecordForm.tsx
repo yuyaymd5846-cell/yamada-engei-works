@@ -37,7 +37,10 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     // Update estimated time when selection changes
     useEffect(() => {
         if (selectedGreenhouseIds.length > 0) {
-            if (defaultTime10a > 0) {
+            if (workName === '栽培管理') {
+                // Fixed 0.25h per house for cultivation management
+                setTimeHours((selectedGreenhouseIds.length * 0.25).toFixed(2))
+            } else if (defaultTime10a > 0) {
                 let totalArea = 0
                 selectedGreenhouseIds.forEach(id => {
                     const gh = suggestedGreenhouses.find(g => g.id === id)
@@ -49,7 +52,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
         } else {
             setTimeHours('')
         }
-    }, [selectedGreenhouseIds, defaultTime10a, suggestedGreenhouses])
+    }, [selectedGreenhouseIds, defaultTime10a, suggestedGreenhouses, workName])
 
     const toggleSelection = (id: string) => {
         setSelectedGreenhouseIds(prev =>

@@ -152,11 +152,13 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
 
             <div className={styles.cardFooter}>
                 <div className={styles.footerInfo}>
-                    {requiredTime10a > 0 ? (
+                    {manual.workName === '栽培管理' ? (
+                        <span className={styles.standardTime}>目安: 0.25h/ハウス</span>
+                    ) : (requiredTime10a > 0 ? (
                         <span className={styles.standardTime}>
                             目安: {requiredTime10a}h/{(manual.workName === 'かん水' || manual.workName === '薬剤散布') ? '棟' : '10a'}
                         </span>
-                    ) : <span />}
+                    ) : <span />)}
                     <Link href={`/work/${manual.id}`} className={styles.link}>📖 手順を見る</Link>
                 </div>
 
