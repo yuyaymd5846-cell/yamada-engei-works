@@ -193,7 +193,7 @@ export default function VoiceRecordButton() {
         className={styles.voiceButton}
         title="音声で作業記録を入力"
       >
-        🎤 音声入力
+        🎤
       </button>
     )
   }

@@ -413,5 +413,5 @@
 .recordButtonsRow {
     display: flex;
     gap: var(--spacing-md);
-    align-items: flex-start;
+    align-items: center;
 }
