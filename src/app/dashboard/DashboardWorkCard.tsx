@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import styles from './dashboard.module.css'
 import QuickRecordForm from './QuickRecordForm'
+import VoiceRecordButton from './VoiceRecordButton'
 
 interface TargetItem {
     greenhouseId: string
@@ -177,16 +178,19 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
                     </div>
                 )}
 
-                <QuickRecordForm
-                    workName={manual.workName}
-                    suggestedGreenhouses={targets.map(t => ({
-                        id: t.greenhouseId,
-                        name: t.greenhouseName,
-                        areaAcre: t.areaAcre,
-                        lastBatchNumber: t.lastBatchNumber
-                    }))}
-                    defaultTime10a={requiredTime10a}
-                />
+                <div className={styles.recordButtonsRow}>
+                    <QuickRecordForm
+                        workName={manual.workName}
+                        suggestedGreenhouses={targets.map(t => ({
+                            id: t.greenhouseId,
+                            name: t.greenhouseName,
+                            areaAcre: t.areaAcre,
+                            lastBatchNumber: t.lastBatchNumber
+                        }))}
+                        defaultTime10a={requiredTime10a}
+                    />
+                    <VoiceRecordButton />
+                </div>
             </div>
         </div>
     )
