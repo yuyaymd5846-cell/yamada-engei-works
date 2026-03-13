@@ -29,6 +29,7 @@ export default function VoiceRecordButton() {
   const [error, setError] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [transcript, setTranscript] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
 
   const startRecording = () => {
     try {
@@ -137,6 +138,8 @@ export default function VoiceRecordButton() {
       // リセット
       setParsedData(null)
       setIsOpen(false)
+      setSuccessMsg('✅ 登録しました！')
+      setTimeout(() => setSuccessMsg(''), 3000)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存に失敗しました')
@@ -188,13 +191,18 @@ export default function VoiceRecordButton() {
   // 通常ビュー
   if (!isOpen) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className={styles.voiceButton}
-        title="音声で作業記録を入力"
-      >
-        🎤
-      </button>
+      <div className={styles.voiceBtnWrapper}>
+        {successMsg && (
+          <div className={styles.successToast}>{successMsg}</div>
+        )}
+        <button
+          onClick={() => setIsOpen(true)}
+          className={styles.voiceButton}
+          title="音声で作業記録を入力"
+        >
+          🎤
+        </button>
+      </div>
     )
   }
 

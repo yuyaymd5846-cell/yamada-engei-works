@@ -1,3 +1,27 @@
+.triggerWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.successToast {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    animation: fadeInOut 3s ease forwards;
+}
+
+@keyframes fadeInOut {
+    0%   { opacity: 0; transform: translateY(-4px); }
+    10%  { opacity: 1; transform: translateY(0); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
 .triggerButton {
     background-color: var(--color-primary);
     color: white;

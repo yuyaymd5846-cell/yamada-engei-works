@@ -15,6 +15,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     const [isOpen, setIsOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState('')
+    const [successMsg, setSuccessMsg] = useState('')
 
     // Form State
     const [selectedGreenhouseIds, setSelectedGreenhouseIds] = useState<string[]>([])
@@ -239,6 +240,8 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             setTimeHours('')
             setNote('')
             removePhoto()
+            setSuccessMsg(`✅ ${selectedGreenhouseIds.length}件 登録しました！`)
+            setTimeout(() => setSuccessMsg(''), 3000)
             router.refresh()
 
         } catch (err: any) {
@@ -251,12 +254,17 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
     if (!isOpen) {
         return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className={styles.triggerButton}
-            >
-                📝 記録する
-            </button>
+            <div className={styles.triggerWrapper}>
+                {successMsg && (
+                    <div className={styles.successToast}>{successMsg}</div>
+                )}
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className={styles.triggerButton}
+                >
+                    📝 記録する
+                </button>
+            </div>
         )
     }
 
