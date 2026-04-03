@@ -47,6 +47,7 @@ interface TodaysWorkResult {
 }
 
 async function getTodaysWork() {
+    const startedAt = Date.now()
     const now = new Date()
     const jstFormatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Asia/Tokyo',
@@ -117,10 +118,23 @@ async function getTodaysWork() {
 
     // Map to store total actual time (minutes) per work name
     const actualTimeMap = new Map<string, number>()
+    const splitTaskNames = ['収穫', '出荷調整（手作業）', '出荷']
+    const splitTaskHouseActualTimeMap = new Map<string, number>()
+    const sprayedTodayGreenhouseSet = new Set<string>()
     todaysRecords.forEach(record => {
         const baseName = record.workName.split(' (')[0]
         const current = actualTimeMap.get(baseName) || 0
         actualTimeMap.set(baseName, current + record.spentTime)
+
+        for (const splitTask of splitTaskNames) {
+            if (record.workName === splitTask || record.workName.startsWith(splitTask)) {
+                const key = `${splitTask}|${record.greenhouseName}`
+                splitTaskHouseActualTimeMap.set(key, (splitTaskHouseActualTimeMap.get(key) || 0) + record.spentTime)
+            }
+        }
+        if (record.workName === '薬剤散布') {
+            sprayedTodayGreenhouseSet.add(record.greenhouseName)
+        }
     })
 
     // Create a set for quick lookup: "WorkName|GreenhouseName|BatchNumber"
@@ -313,7 +327,7 @@ async function getTodaysWork() {
 
         if (manual) {
             // Special handling: Split into individual cards for Harvest and Shipping tasks
-            const tasksToSplit = ['収穫', '出荷調整（手作業）', '出荷']
+            const tasksToSplit = splitTaskNames
             if (tasksToSplit.includes(workName)) {
                 let effectiveHouses = ghIds.length > 0 ? ghIds : []
                 // Sort by orderIndex
@@ -325,11 +339,7 @@ async function getTodaysWork() {
                     const greenhouse = greenhouseMap.get(ghId)
                     if (greenhouse) {
                         // Calculate actual time SPECIFIC to this house for this task
-                        const thisHouseRecords = todaysRecords.filter(r =>
-                            (r.workName === workName || r.workName.startsWith(workName)) &&
-                            (r.greenhouseName === greenhouse.name)
-                        )
-                        const thisHouseActualTime = thisHouseRecords.reduce((sum, r) => sum + r.spentTime, 0)
+                        const thisHouseActualTime = splitTaskHouseActualTimeMap.get(`${workName}|${greenhouse.name}`) || 0
 
                         const lastBatchNumber = cycleBatchMap.get(ghId) ?? null
 
@@ -412,10 +422,7 @@ async function getTodaysWork() {
                         let daysPassed = 0
 
                         // Check if this is the Pesticide task and it has NOT been completed today
-                        const thisHouseRecordsToday = todaysRecords.filter(r =>
-                            r.workName === '薬剤散布' && r.greenhouseName === greenhouse.name
-                        )
-                        const completedToday = thisHouseRecordsToday.length > 0
+                        const completedToday = sprayedTodayGreenhouseSet.has(greenhouse.name)
 
                         if (workName === '薬剤散布' && !completedToday) {
                             const lastDate = lastPesticideDateMap.get(greenhouse.name)
@@ -486,6 +493,8 @@ async function getTodaysWork() {
         return 0
     })
 
+    const elapsedMs = Date.now() - startedAt
+    console.info(`[dashboard] getTodaysWork computed in ${elapsedMs}ms (targets=${targets.length})`)
     return { targets, allGreenhouses, activeCycles } satisfies TodaysWorkResult
 }
 
@@ -499,6 +508,7 @@ async function getRiskAlerts() {
 }
 
 async function DashboardMain() {
+    const startedAt = Date.now()
     const [{ targets: todaysWorkTargets, allGreenhouses, activeCycles }, riskAlerts] = await Promise.all([
         getTodaysWork(),
         getRiskAlerts()
@@ -514,6 +524,7 @@ async function DashboardMain() {
         areaAcre: g.areaAcre,
         lastBatchNumber: cycleBatchMap.get(g.id) || null
     }))
+    console.info(`[dashboard] DashboardMain prepared in ${Date.now() - startedAt}ms`)
 
     return (
         <div className={styles.dashboard}>
