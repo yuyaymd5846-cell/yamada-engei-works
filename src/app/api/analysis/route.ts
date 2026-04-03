@@ -11,8 +11,25 @@ export async function GET(request: Request) {
         const ghParam = searchParams.get('gh')
         const batchParam = searchParams.get('batch')
 
-        // 1. Get all CropCycles to establish the "Harvest Year" mapping
-        const allCycles = await prisma.cropCycle.findMany()
+        // 1. Get CropCycles to establish the "Harvest Year" mapping
+        const hasYearFilter = !!(yearParam && /^\d{4}$/.test(yearParam))
+        const cycleWhere = hasYearFilter
+            ? {
+                harvestStart: {
+                    gte: new Date(Date.UTC(Number(yearParam), 0, 1, 0, 0, 0)),
+                    lt: new Date(Date.UTC(Number(yearParam) + 1, 0, 1, 0, 0, 0))
+                }
+            }
+            : undefined
+
+        const allCycles = await prisma.cropCycle.findMany({
+            where: cycleWhere,
+            select: {
+                greenhouseName: true,
+                batchNumber: true,
+                harvestStart: true,
+            }
+        })
 
         // Create lists of available options for the UI filters
         const availableYears = new Set<string>()
@@ -27,36 +44,34 @@ export async function GET(request: Request) {
             availableGreenhouses.add(c.greenhouseName)
         })
 
-        // 2. Fetch all WorkRecords (we'll filter them in-memory to ensure we correctly map to CropCycles)
+        const cycleKeySet = new Set(
+            allCycles.map(c => `${c.greenhouseName}|${c.batchNumber ?? ''}`)
+        )
+
+        // 2. Fetch filtered WorkRecords (push down greenhouse/batch filters to DB)
         const allRecords = await prisma.workRecord.findMany({
+            where: {
+                ...(ghParam && ghParam !== 'ALL' ? { greenhouseName: ghParam } : {}),
+                ...(batchParam && batchParam !== 'ALL' ? { batchNumber: Number(batchParam) } : {}),
+            },
+            select: {
+                date: true,
+                workName: true,
+                greenhouseName: true,
+                spentTime: true,
+                batchNumber: true,
+            },
             orderBy: { date: 'asc' }
         })
 
         const filteredRecords = allRecords.filter(record => {
-            // Find the corresponding CropCycle for this record
-            // Match by greenhouseName and batchNumber
-            const cycle = allCycles.find(c =>
-                c.greenhouseName === record.greenhouseName &&
-                c.batchNumber === record.batchNumber
-            )
-
-            // If a year filter is applied, check the harvest year of the cycle
-            if (yearParam) {
-                if (!cycle || !cycle.harvestStart) return false
-                const cycleYear = new Date(cycle.harvestStart).getFullYear().toString()
-                if (cycleYear !== yearParam) return false
+            if (hasYearFilter) {
+                const key = `${record.greenhouseName}|${record.batchNumber ?? ''}`
+                if (!cycleKeySet.has(key)) return false
             }
-
-            // If a greenhouse filter is applied
-            if (ghParam && ghParam !== 'ALL' && record.greenhouseName !== ghParam) {
-                return false
-            }
-
-            // If a batch filter is applied
             if (batchParam && batchParam !== 'ALL' && record.batchNumber?.toString() !== batchParam) {
                 return false
             }
-
             return true
         })
 

@@ -22,6 +22,14 @@ interface WorkRecord {
 type SortKey = 'date' | 'workName' | 'greenhouseName' | 'spentTime'
 type SortDir = 'asc' | 'desc'
 
+function normalizeWorkerName(workerName: string | null) {
+    if (!workerName) return '-'
+    const stripped = workerName
+        .replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '')
+        .trim()
+    return stripped || workerName.trim() || '-'
+}
+
 export default function WorkRecordsPage() {
     const [records, setRecords] = useState<WorkRecord[]>([])
     const [loading, setLoading] = useState(true)
@@ -49,9 +57,9 @@ export default function WorkRecordsPage() {
     const ITEMS_PER_PAGE = 50
     const [currentPage, setCurrentPage] = useState(1)
 
-    const fetchRecords = async () => {
+    const fetchRecords = async (month: string) => {
         try {
-            const res = await fetch('/api/record')
+            const res = await fetch(`/api/record?month=${encodeURIComponent(month)}`)
             const data = await res.json()
             setRecords(data)
         } catch (err) {
@@ -62,8 +70,8 @@ export default function WorkRecordsPage() {
     }
 
     useEffect(() => {
-        fetchRecords()
-    }, [])
+        fetchRecords(filterMonth)
+    }, [filterMonth])
 
     // Unique values for dropdowns
     const uniqueGreenhouses = useMemo(() =>
@@ -227,7 +235,7 @@ export default function WorkRecordsPage() {
             })
             if (res.ok) {
                 alert(`${mappedRecords.length}件のデータをインポートしました`)
-                fetchRecords()
+                fetchRecords(filterMonth)
             } else {
                 const errData = await res.json()
                 alert(`インポートに失敗しました: ${errData.error || '不明なエラー'}`)
@@ -301,7 +309,7 @@ export default function WorkRecordsPage() {
             })
             if (res.ok) {
                 setEditingId(null)
-                fetchRecords()
+                fetchRecords(filterMonth)
             } else {
                 alert('更新に失敗しました')
             }
@@ -347,7 +355,7 @@ export default function WorkRecordsPage() {
         if (!confirm('このレコードを削除しますか？')) return
         try {
             const res = await fetch(`/api/record?id=${id}`, { method: 'DELETE' })
-            if (res.ok) fetchRecords()
+            if (res.ok) fetchRecords(filterMonth)
             else alert('削除に失敗しました')
         } catch (err) {
             alert('エラーが発生しました')
@@ -360,7 +368,7 @@ export default function WorkRecordsPage() {
             const res = await fetch('/api/record?all=true', { method: 'DELETE' })
             if (res.ok) {
                 alert('全てのレコードを消去しました')
-                fetchRecords()
+                fetchRecords(filterMonth)
             } else {
                 alert('消去に失敗しました')
             }
@@ -532,7 +540,7 @@ export default function WorkRecordsPage() {
                                         )}
                                     </td>
                                     <td>
-                                        {record.workerName || '-'}
+                                        {normalizeWorkerName(record.workerName)}
                                     </td>
                                     <td className={styles.noteCell}>
                                         {isEditing ? (
@@ -660,7 +668,7 @@ export default function WorkRecordsPage() {
                                     <div className={styles.mobileCardBody}>
                                         <span>{record.greenhouseName}</span>
                                         {record.batchNumber && <span>第{record.batchNumber}作</span>}
-                                        {record.workerName && <span className={styles.mobileWorker}>🧔🏻 {record.workerName}</span>}
+                                        {record.workerName && <span className={styles.mobileWorker}>担当: {normalizeWorkerName(record.workerName)}</span>}
                                         {record.note && <span className={styles.mobileNote}>{record.note}</span>}
                                     </div>
                                     {record.photoUrl && (
