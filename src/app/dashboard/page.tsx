@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { Suspense } from 'react'
 import styles from './dashboard.module.css'
 import QuickRecordForm from './QuickRecordForm'
 import DashboardWorkCard from './DashboardWorkCard'
@@ -39,7 +40,14 @@ interface WorkTarget {
     hasUrgentTarget?: boolean
 }
 
+interface TodaysWorkResult {
+    targets: WorkTarget[]
+    allGreenhouses: { id: string; name: string; areaAcre: number; orderIndex: number }[]
+    activeCycles: { greenhouseId: string; batchNumber: number | null }[]
+}
+
 async function getTodaysWork() {
+    const startedAt = Date.now()
     const now = new Date()
     const jstFormatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Asia/Tokyo',
@@ -57,42 +65,75 @@ async function getTodaysWork() {
     // Abstract JST date normalized to UTC midnight for comparing with stored cycle dates
     const todayUTC = new Date(Date.UTC(year, month, day))
 
-    // 1. Get all active crop cycles
-    const activeCycles = await prisma.cropCycle.findMany({
-        where: {
-            OR: [
-                { harvestEnd: null },
-                { harvestEnd: { gte: todayUTC } }
-            ]
-        }
-    })
-
-    // 2. Get today's work records to calculate total actual time for each work type
-    const todaysRecords = await prisma.workRecord.findMany({
-        where: {
-            date: {
-                gte: todayStartJST,
-                lte: todayEndJST,
-            }
-        }
-    })
+    // Focusing on specific one-time tasks: 発蕾確認, ヤゴかき, 頂花取り
+    const oneTimeTasks = ['発蕾確認', 'ヤゴかき', '頂花取り', '杭打ち', '圃場準備', '施肥', 'ハダニ特別防除', '片付け']
+    const [activeCycles, todaysRecords, historyRecords, activeSchedules, allGreenhouses, manuals, recentPesticides] = await Promise.all([
+        prisma.cropCycle.findMany({
+            where: {
+                OR: [
+                    { harvestEnd: null },
+                    { harvestEnd: { gte: todayUTC } }
+                ]
+            },
+            select: { greenhouseId: true, batchNumber: true, plantingDate: true, harvestStart: true, harvestEnd: true, lightsOffDate: true }
+        }),
+        prisma.workRecord.findMany({
+            where: {
+                date: {
+                    gte: todayStartJST,
+                    lte: todayEndJST,
+                }
+            },
+            select: { workName: true, greenhouseName: true, spentTime: true }
+        }),
+        prisma.workRecord.findMany({
+            where: {
+                workName: { in: oneTimeTasks },
+                date: { lt: todayStartJST }
+            },
+            select: { workName: true, greenhouseName: true, batchNumber: true }
+        }),
+        prisma.cropSchedule.findMany({
+            where: {
+                startDate: { lte: todayUTC },
+                OR: [
+                    { endDate: null },
+                    { endDate: { gte: todayUTC } }
+                ]
+            },
+            select: { stage: true, greenhouseId: true }
+        }),
+        prisma.greenhouse.findMany({
+            orderBy: { orderIndex: 'asc' },
+            select: { id: true, name: true, areaAcre: true, orderIndex: true }
+        }),
+        prisma.workManual.findMany(),
+        prisma.workRecord.findMany({
+            where: { workName: '薬剤散布' },
+            orderBy: { date: 'desc' },
+            take: 100,
+            select: { greenhouseName: true, date: true }
+        })
+    ])
 
     // Map to store total actual time (minutes) per work name
     const actualTimeMap = new Map<string, number>()
+    const splitTaskNames = ['収穫', '出荷調整（手作業）', '出荷']
+    const splitTaskHouseActualTimeMap = new Map<string, number>()
+    const sprayedTodayGreenhouseSet = new Set<string>()
     todaysRecords.forEach(record => {
-        // Handle potential appended greenhouse names for backward compatibility
         const baseName = record.workName.split(' (')[0]
         const current = actualTimeMap.get(baseName) || 0
         actualTimeMap.set(baseName, current + record.spentTime)
-    })
 
-    // 2.5 Get ALL historical records for one-time tasks to hide them if already done in the past
-    // Focusing on specific one-time tasks: 発蕾確認, ヤゴかき, 頂花取り
-    const oneTimeTasks = ['発蕾確認', 'ヤゴかき', '頂花取り', '杭打ち', '圃場準備', '施肥', 'ハダニ特別防除', '片付け']
-    const historyRecords = await prisma.workRecord.findMany({
-        where: {
-            workName: { in: oneTimeTasks },
-            date: { lt: todayStartJST } // Only records BEFORE today
+        for (const splitTask of splitTaskNames) {
+            if (record.workName === splitTask || record.workName.startsWith(splitTask)) {
+                const key = `${splitTask}|${record.greenhouseName}`
+                splitTaskHouseActualTimeMap.set(key, (splitTaskHouseActualTimeMap.get(key) || 0) + record.spentTime)
+            }
+        }
+        if (record.workName === '薬剤散布') {
+            sprayedTodayGreenhouseSet.add(record.greenhouseName)
         }
     })
 
@@ -103,26 +144,12 @@ async function getTodaysWork() {
         completedHistory.add(key)
     })
 
-    // 3. Get active schedules from Gantt chart to refine visibility
-    const activeSchedules = await prisma.cropSchedule.findMany({
-        where: {
-            startDate: { lte: todayUTC },
-            OR: [
-                { endDate: null },
-                { endDate: { gte: todayUTC } }
-            ]
-        }
-    })
     const harvestingGreenhouseIds = new Set(
         activeSchedules
             .filter(s => s.stage === '収穫' || s.stage === '収穫期')
             .map(s => s.greenhouseId)
     )
 
-    // 3.5 Prepare maps for greenhouse lookup and batch numbers
-    const allGreenhouses = await prisma.greenhouse.findMany({
-        orderBy: { orderIndex: 'asc' }
-    })
     const greenhouseMap = new Map(allGreenhouses.map(g => [g.id, g]))
 
     const cycleBatchMap = new Map<string, number | null>()
@@ -134,17 +161,8 @@ async function getTodaysWork() {
         }
     }
 
-    // 4. Get all work manuals for standard times and qualitative targets
-    const manuals = await prisma.workManual.findMany()
     const manualMap = new Map(manuals.map(m => [m.workName, m]))
 
-    // 4.5. Get recent pesticide records to calculate days passed
-    const recentPesticides = await prisma.workRecord.findMany({
-        where: { workName: '薬剤散布' },
-        orderBy: { date: 'desc' },
-        // Fetch enough to cover all greenhouses recently
-        take: 100
-    })
     const lastPesticideDateMap = new Map<string, Date>()
     for (const record of recentPesticides) {
         if (!lastPesticideDateMap.has(record.greenhouseName)) {
@@ -309,7 +327,7 @@ async function getTodaysWork() {
 
         if (manual) {
             // Special handling: Split into individual cards for Harvest and Shipping tasks
-            const tasksToSplit = ['収穫', '出荷調整（手作業）', '出荷']
+            const tasksToSplit = splitTaskNames
             if (tasksToSplit.includes(workName)) {
                 let effectiveHouses = ghIds.length > 0 ? ghIds : []
                 // Sort by orderIndex
@@ -321,11 +339,7 @@ async function getTodaysWork() {
                     const greenhouse = greenhouseMap.get(ghId)
                     if (greenhouse) {
                         // Calculate actual time SPECIFIC to this house for this task
-                        const thisHouseRecords = todaysRecords.filter(r =>
-                            (r.workName === workName || r.workName.startsWith(workName)) &&
-                            (r.greenhouseName === greenhouse.name)
-                        )
-                        const thisHouseActualTime = thisHouseRecords.reduce((sum, r) => sum + r.spentTime, 0)
+                        const thisHouseActualTime = splitTaskHouseActualTimeMap.get(`${workName}|${greenhouse.name}`) || 0
 
                         const lastBatchNumber = cycleBatchMap.get(ghId) ?? null
 
@@ -408,10 +422,7 @@ async function getTodaysWork() {
                         let daysPassed = 0
 
                         // Check if this is the Pesticide task and it has NOT been completed today
-                        const thisHouseRecordsToday = todaysRecords.filter(r =>
-                            r.workName === '薬剤散布' && r.greenhouseName === greenhouse.name
-                        )
-                        const completedToday = thisHouseRecordsToday.length > 0
+                        const completedToday = sprayedTodayGreenhouseSet.has(greenhouse.name)
 
                         if (workName === '薬剤散布' && !completedToday) {
                             const lastDate = lastPesticideDateMap.get(greenhouse.name)
@@ -476,11 +487,15 @@ async function getTodaysWork() {
     }
 
     // Finally sort to move completed tasks to the end, and urgent tasks to the top
-    return finalResults.sort((a, b) => {
+    const targets = finalResults.sort((a, b) => {
         if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1
         if (a.hasUrgentTarget !== b.hasUrgentTarget) return a.hasUrgentTarget ? -1 : 1
         return 0
     })
+
+    const elapsedMs = Date.now() - startedAt
+    console.info(`[dashboard] getTodaysWork computed in ${elapsedMs}ms (targets=${targets.length})`)
+    return { targets, allGreenhouses, activeCycles } satisfies TodaysWorkResult
 }
 
 async function getRiskAlerts() {
@@ -492,18 +507,14 @@ async function getRiskAlerts() {
     })
 }
 
-export default async function DashboardPage() {
-    const todaysWorkTargets = await getTodaysWork()
-    const riskAlerts = await getRiskAlerts()
+async function DashboardMain() {
+    const startedAt = Date.now()
+    const [{ targets: todaysWorkTargets, allGreenhouses, activeCycles }, riskAlerts] = await Promise.all([
+        getTodaysWork(),
+        getRiskAlerts()
+    ])
 
     // --- For Trouble Logging Section ---
-    const allGreenhouses = await prisma.greenhouse.findMany({
-        orderBy: { orderIndex: 'asc' }
-    })
-    const todayUTC = new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()))
-    const activeCycles = await prisma.cropCycle.findMany({
-        where: { OR: [{ harvestEnd: null }, { harvestEnd: { gte: todayUTC } }] }
-    })
     const cycleBatchMap = new Map()
     for (const c of activeCycles) cycleBatchMap.set(c.greenhouseId, c.batchNumber)
 
@@ -513,6 +524,7 @@ export default async function DashboardPage() {
         areaAcre: g.areaAcre,
         lastBatchNumber: cycleBatchMap.get(g.id) || null
     }))
+    console.info(`[dashboard] DashboardMain prepared in ${Date.now() - startedAt}ms`)
 
     return (
         <div className={styles.dashboard}>
@@ -596,5 +608,22 @@ export default async function DashboardPage() {
                 </Link>
             </div>
         </div>
+    )
+}
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={
+            <div className={styles.dashboard}>
+                <h1 className={styles.pageTitle}>ダッシュボード</h1>
+                <div className={styles.dateDisplay}>データを準備中です...</div>
+                <section className={styles.section}>
+                    <h2 className={styles.sectionTitle}>今日の作業候補</h2>
+                    <p>先に画面を表示し、重い集計はバックグラウンドで読み込みます。</p>
+                </section>
+            </div>
+        }>
+            <DashboardMain />
+        </Suspense>
     )
 }

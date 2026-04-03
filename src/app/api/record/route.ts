@@ -95,9 +95,30 @@ async function updateSchedule(record: any) {
     }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url)
+        const month = searchParams.get('month')
+        const gh = searchParams.get('gh')
+        const work = searchParams.get('work')
+
+        const where: {
+            date?: { gte: Date; lt: Date }
+            greenhouseName?: string
+            workName?: string
+        } = {}
+
+        if (month && /^\d{4}-\d{2}$/.test(month)) {
+            const [year, m] = month.split('-').map(Number)
+            const start = new Date(Date.UTC(year, m - 1, 1, 0, 0, 0))
+            const end = new Date(Date.UTC(year, m, 1, 0, 0, 0))
+            where.date = { gte: start, lt: end }
+        }
+        if (gh && gh !== 'all') where.greenhouseName = gh
+        if (work && work !== 'all') where.workName = work
+
         const records = await prisma.workRecord.findMany({
+            where,
             orderBy: { date: 'desc' }
         })
         return NextResponse.json(records)
@@ -228,6 +249,11 @@ export async function DELETE(request: Request) {
         const all = searchParams.get('all')
 
         if (all === 'true') {
+            const token = request.headers.get('x-admin-delete-token')
+            const expected = process.env.ADMIN_DELETE_TOKEN
+            if (!expected || token !== expected) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+            }
             await prisma.workRecord.deleteMany({})
             return NextResponse.json({ message: 'All records deleted' })
         }
