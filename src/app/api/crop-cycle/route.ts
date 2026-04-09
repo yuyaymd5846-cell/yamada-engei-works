@@ -1,5 +1,6 @@
 
 import prisma from '@/lib/prisma'
+import { syncCropSchedulesForGreenhouse } from '@/lib/crop-schedule-sync'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
@@ -9,6 +10,7 @@ export async function GET() {
         })
         return NextResponse.json(cycles)
     } catch (error) {
+        console.error('Crop cycle fetch error:', error)
         return NextResponse.json({ error: 'Failed to fetch crop cycles' }, { status: 500 })
     }
 }
@@ -37,6 +39,8 @@ export async function POST(request: Request) {
                 cleanupDate: cleanupDate ? new Date(cleanupDate) : null,
             }
         })
+
+        await syncCropSchedulesForGreenhouse(cycle.greenhouseId)
 
         return NextResponse.json(cycle)
     } catch (error) {
@@ -71,6 +75,8 @@ export async function PATCH(request: Request) {
             }
         })
 
+        await syncCropSchedulesForGreenhouse(updated.greenhouseId)
+
         return NextResponse.json(updated)
     } catch (error) {
         console.error('Crop cycle update error:', error)
@@ -84,9 +90,15 @@ export async function DELETE(request: Request) {
         const id = searchParams.get('id')
         if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 })
 
+        const existing = await prisma.cropCycle.findUnique({ where: { id } })
+        if (!existing) return NextResponse.json({ error: 'Crop cycle not found' }, { status: 404 })
+
         await prisma.cropCycle.delete({ where: { id } })
+        await syncCropSchedulesForGreenhouse(existing.greenhouseId)
+
         return NextResponse.json({ success: true })
     } catch (error) {
+        console.error('Crop cycle deletion error:', error)
         return NextResponse.json({ error: 'Failed to delete crop cycle' }, { status: 500 })
     }
 }
