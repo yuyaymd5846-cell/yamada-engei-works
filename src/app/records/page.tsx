@@ -1,10 +1,8 @@
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import styles from './records.module.css'
-import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
 
 interface WorkRecord {
     id: string
@@ -62,8 +60,8 @@ export default function WorkRecordsPage() {
             const res = await fetch(`/api/record?month=${encodeURIComponent(month)}`)
             const data = await res.json()
             setRecords(data)
-        } catch (err) {
-            console.error(err)
+        } catch (error) {
+            console.error(error)
         } finally {
             setLoading(false)
         }
@@ -170,6 +168,7 @@ export default function WorkRecordsPage() {
     }
 
     // ===== Import/Export/Edit logic (preserved from original) =====
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const processImportItems = async (rawData: any[]) => {
         if (!rawData || rawData.length === 0) {
             alert('データが見つかりませんでした。')
@@ -240,23 +239,26 @@ export default function WorkRecordsPage() {
                 const errData = await res.json()
                 alert(`インポートに失敗しました: ${errData.error || '不明なエラー'}`)
             }
-        } catch (err) {
+        } catch {
             alert('通信エラーが発生しました')
         } finally {
             setImporting(false)
         }
     }
 
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
         setImporting(true)
         if (file.name.endsWith('.csv')) {
+            const Papa = (await import('papaparse')).default
             Papa.parse(file, {
                 header: false,
                 skipEmptyLines: true,
                 complete: (results) => {
-                    processImportItems(results.data)
+                    void processImportItems(results.data)
                     e.target.value = ''
                 },
                 error: () => {
@@ -266,16 +268,17 @@ export default function WorkRecordsPage() {
             })
         } else {
             const reader = new FileReader()
-            reader.onload = (evt) => {
+            reader.onload = async (evt) => {
                 try {
+                    const XLSX = await import('xlsx')
                     const bstr = evt.target?.result
                     const wb = XLSX.read(bstr, { type: 'binary', cellDates: true })
                     const wsname = wb.SheetNames.find(n => n.includes('作業')) || wb.SheetNames[0]
                     const ws = wb.Sheets[wsname]
                     const data = XLSX.utils.sheet_to_json(ws, { header: 1 })
-                    processImportItems(data)
-                } catch (err) {
-                    console.error(err)
+                    await processImportItems(data)
+                } catch (error) {
+                    console.error(error)
                     alert('Excelファイルの解析に失敗しました')
                     setImporting(false)
                 }
@@ -313,7 +316,7 @@ export default function WorkRecordsPage() {
             } else {
                 alert('更新に失敗しました')
             }
-        } catch (err) {
+        } catch {
             alert('エラーが発生しました')
         }
     }
@@ -357,7 +360,7 @@ export default function WorkRecordsPage() {
             const res = await fetch(`/api/record?id=${id}`, { method: 'DELETE' })
             if (res.ok) fetchRecords(filterMonth)
             else alert('削除に失敗しました')
-        } catch (err) {
+        } catch {
             alert('エラーが発生しました')
         }
     }
@@ -372,7 +375,7 @@ export default function WorkRecordsPage() {
             } else {
                 alert('消去に失敗しました')
             }
-        } catch (err) {
+        } catch {
             alert('エラーが発生しました')
         }
     }
@@ -559,6 +562,8 @@ export default function WorkRecordsPage() {
                                                 src={record.photoUrl}
                                                 alt="写真"
                                                 className={styles.thumbnail}
+                                                loading="lazy"
+                                                decoding="async"
                                                 onClick={() => setLightboxUrl(record.photoUrl)}
                                             />
                                         )}
@@ -676,6 +681,8 @@ export default function WorkRecordsPage() {
                                             src={record.photoUrl}
                                             alt="写真"
                                             className={styles.mobilePhoto}
+                                            loading="lazy"
+                                            decoding="async"
                                             onClick={() => setLightboxUrl(record.photoUrl)}
                                         />
                                     )}

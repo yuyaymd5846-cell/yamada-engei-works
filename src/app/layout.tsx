@@ -1,22 +1,25 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { cookies } from 'next/headers'
+import Header from '@/components/Header'
 import './globals.css'
 import styles from './layout.module.css'
-import Header from '@/components/Header'
-import { cookies } from 'next/headers'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   title: '山田園芸 作業マニュアルDB',
-  description: '標準作業マニュアルと意思決定支援システム',
+  description: '園芸作業マニュアルと日々の作業記録をまとめて管理するアプリです。',
   manifest: '/manifest.webmanifest',
-  themeColor: '#2e7d32',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: '山田園芸',
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#2d5a27',
 }
 
 export default async function RootLayout({

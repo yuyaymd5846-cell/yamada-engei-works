@@ -1,9 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import styles from './dashboard.module.css'
-import QuickRecordForm from './QuickRecordForm'
+
+const QuickRecordForm = dynamic(() => import('./QuickRecordForm'), {
+    ssr: false,
+    loading: () => <div className={styles.quickRecordLoading}>入力フォームを準備中...</div>,
+})
 
 interface TargetItem {
     greenhouseId: string
@@ -45,46 +50,49 @@ function getTodayDateStr() {
 
 export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCardData }) {
     const {
-        manual, displayWorkName, targets,
-        targetTotalTime, actualTime, requiredTime10a,
-        isCompleted, hasUrgentTarget
+        manual,
+        displayWorkName,
+        targets,
+        targetTotalTime,
+        actualTime,
+        requiredTime10a,
+        isCompleted,
     } = workTarget
 
     const cardKey = `dashboard_done_${getTodayDateStr()}_${displayWorkName || manual.workName}`
     const [manuallyDone, setManuallyDone] = useState(false)
+    const [showRecordForm, setShowRecordForm] = useState(false)
 
     useEffect(() => {
         try {
             setManuallyDone(localStorage.getItem(cardKey) === 'true')
-        } catch { /* storageが使えない環境では無視 */ }
+        } catch {
+            // Ignore storage access errors in restricted environments.
+        }
     }, [cardKey])
 
     const markDone = async () => {
         try {
-            // ローカルストレージにも保存（即時フィードバック用）
             localStorage.setItem(cardKey, 'true')
             setManuallyDone(true)
 
-            // APIを介してDBに保存（ spentTime: 0 ）
-            // これにより翌日以降も「完了済み」として判定可能になる
             const recordData = {
                 workName: manual.workName,
-                greenhouseName: targets[0]?.greenhouseName || '不明',
+                greenhouseName: targets[0]?.greenhouseName || '未指定',
                 batchNumber: targets[0]?.lastBatchNumber || null,
                 spentTime: 0,
-                note: 'ダッシュボードから完了',
-                date: new Date().toISOString()
+                note: 'ダッシュボードで完了に設定',
+                date: new Date().toISOString(),
             }
 
             const res = await fetch('/api/record', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(recordData)
+                body: JSON.stringify(recordData),
             })
 
             if (!res.ok) {
                 console.error('Failed to save completion record')
-                // 失敗した場合は localStorage だけ残る（とりあえず今日の分は消える）
             }
         } catch (error) {
             console.error('Error marking as done:', error)
@@ -92,7 +100,11 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
     }
 
     const unmarkDone = () => {
-        try { localStorage.removeItem(cardKey) } catch { }
+        try {
+            localStorage.removeItem(cardKey)
+        } catch {
+            // Ignore storage access errors in restricted environments.
+        }
         setManuallyDone(false)
     }
 
@@ -105,7 +117,7 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
                     <h3 className={styles.workName}>{displayWorkName || manual.workName}</h3>
                     {effectivelyDone && (
                         <span className={styles.completedBadge}>
-                            {isCompleted ? '✅ 完了' : '✓ 完了'}
+                            {isCompleted ? '記録済み' : '完了扱い'}
                         </span>
                     )}
                 </div>
@@ -115,19 +127,19 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
             <p className={styles.purpose}>{manual.purpose}</p>
 
             <div className={styles.manualTarget}>
-                <span className={styles.targetIcon}>🎯</span>
-                <span className={styles.targetLabel}>目標:</span>
+                <span className={styles.targetIcon}>⏱</span>
+                <span className={styles.targetLabel}>目安</span>
                 <span className={styles.targetText}>{manual.timingStandard}</span>
             </div>
 
             <div className={styles.targetComparison}>
                 <div className={styles.targetBox}>
                     <span className={styles.subText}>
-                        目標合計: {targetTotalTime > 0 ? `${targetTotalTime.toFixed(2)}h` : '-'}
+                        目標時間 {targetTotalTime > 0 ? `${targetTotalTime.toFixed(2)}h` : '-'}
                     </span>
                 </div>
                 <div className={styles.targetBox}>
-                    <span className={styles.subText}>本日の実績: </span>
+                    <span className={styles.subText}>本日の記録:</span>
                     <span className={styles.actualTotal} data-complete={String(effectivelyDone)}>
                         {actualTime.toFixed(2)}h
                     </span>
@@ -136,15 +148,15 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
 
             {targets.length > 0 && (
                 <div className={styles.targetsList}>
-                    {targets.map((t, idx) => (
-                        <div key={idx} className={`${styles.targetBadge} ${t.isUrgent ? styles.urgentTargetBadge : ''}`}>
-                            <span className={styles.targetGH}>{t.greenhouseName}</span>
-                            {t.isUrgent && (
+                    {targets.map((target, idx) => (
+                        <div key={idx} className={`${styles.targetBadge} ${target.isUrgent ? styles.urgentTargetBadge : ''}`}>
+                            <span className={styles.targetGH}>{target.greenhouseName}</span>
+                            {target.isUrgent && (
                                 <span className={styles.urgentTag}>
-                                    ⚠️ {t.daysPassed === 999 ? '散布歴なし' : `${t.daysPassed}日経過`}
+                                    緊急 {target.daysPassed === 999 ? '未実施' : `${target.daysPassed}日経過`}
                                 </span>
                             )}
-                            <span className={styles.targetTimeValue}>{t.targetTime.toFixed(2)}h</span>
+                            <span className={styles.targetTimeValue}>{target.targetTime.toFixed(2)}h</span>
                         </div>
                     ))}
                 </div>
@@ -153,40 +165,53 @@ export default function DashboardWorkCard({ workTarget }: { workTarget: WorkCard
             <div className={styles.cardFooter}>
                 <div className={styles.footerInfo}>
                     {manual.workName === '栽培管理' ? (
-                        <span className={styles.standardTime}>目安: 0.25h/ハウス</span>
-                    ) : (requiredTime10a > 0 ? (
+                        <span className={styles.standardTime}>標準 0.25h/ハウス</span>
+                    ) : requiredTime10a > 0 ? (
                         <span className={styles.standardTime}>
-                            目安: {requiredTime10a}h/{(manual.workName === 'かん水' || manual.workName === '薬剤散布') ? '棟' : '10a'}
+                            標準 {requiredTime10a}h/
+                            {(manual.workName === 'かん水' || manual.workName === '農薬散布') ? '棟' : '10a'}
                         </span>
-                    ) : <span />)}
-                    <Link href={`/work/${manual.id}`} className={styles.link}>📖 手順を見る</Link>
+                    ) : (
+                        <span />
+                    )}
+                    <Link href={`/work/${manual.id}`} className={styles.link}>詳細を見る</Link>
                 </div>
 
-                {/* 手動完了チェック（作業記録が未入力の場合のみ表示） */}
                 {!isCompleted && (
                     <div className={styles.checkRow}>
                         {manuallyDone ? (
                             <button onClick={unmarkDone} className={styles.undoneBtn}>
-                                ↩ 取り消す
+                                完了扱いを戻す
                             </button>
                         ) : (
                             <button onClick={markDone} className={styles.doneBtn}>
-                                ✓ 完了にする
+                                完了にする
                             </button>
                         )}
                     </div>
                 )}
 
-                <QuickRecordForm
-                    workName={manual.workName}
-                    suggestedGreenhouses={targets.map(t => ({
-                        id: t.greenhouseId,
-                        name: t.greenhouseName,
-                        areaAcre: t.areaAcre,
-                        lastBatchNumber: t.lastBatchNumber
-                    }))}
-                    defaultTime10a={requiredTime10a}
-                />
+                {showRecordForm ? (
+                    <QuickRecordForm
+                        workName={manual.workName}
+                        suggestedGreenhouses={targets.map((target) => ({
+                            id: target.greenhouseId,
+                            name: target.greenhouseName,
+                            areaAcre: target.areaAcre,
+                            lastBatchNumber: target.lastBatchNumber,
+                        }))}
+                        defaultTime10a={requiredTime10a}
+                        defaultOpen
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        className={styles.quickRecordLauncher}
+                        onClick={() => setShowRecordForm(true)}
+                    >
+                        記録フォームを開く
+                    </button>
+                )}
             </div>
         </div>
     )

@@ -383,6 +383,34 @@
     color: #64748b;
 }
 
+.quickRecordLauncher {
+    width: 100%;
+    border: 1px dashed #93c5aa;
+    border-radius: 10px;
+    background: #f7fbf7;
+    color: var(--color-primary);
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    transition: all 0.18s ease;
+}
+
+.quickRecordLauncher:hover {
+    background: #eef7ee;
+    border-color: var(--color-primary-light);
+}
+
+.quickRecordLoading {
+    width: 100%;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
 /* トラブル・例外対応セクション */
 .troubleSection {
     background: #fff1f2;

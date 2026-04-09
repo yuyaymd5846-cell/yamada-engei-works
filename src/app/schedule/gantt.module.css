@@ -39,6 +39,13 @@
     cursor: pointer;
 }
 
+.todayBtn:disabled,
+.navGroup button:disabled,
+.viewToggle button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .navGroup {
     display: flex;
     align-items: center;
@@ -92,6 +99,25 @@
     background: #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     font-weight: 700;
+}
+
+.statusBadge {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #edf7ed;
+    color: var(--color-primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.statusBusy {
+    background: #fff7ed;
+    color: #c2410c;
 }
 
 /* ── Legend ── */

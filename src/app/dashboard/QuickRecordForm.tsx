@@ -8,11 +8,17 @@ interface QuickRecordFormProps {
     workName: string
     suggestedGreenhouses: { id: string, name: string, areaAcre: number, lastBatchNumber: number | null }[]
     defaultTime10a: number
+    defaultOpen?: boolean
 }
 
-export default function QuickRecordForm({ workName, suggestedGreenhouses, defaultTime10a }: QuickRecordFormProps) {
+export default function QuickRecordForm({
+    workName,
+    suggestedGreenhouses,
+    defaultTime10a,
+    defaultOpen = false
+}: QuickRecordFormProps) {
     const router = useRouter()
-    const [isOpen, setIsOpen] = useState(false)
+    const [isOpen, setIsOpen] = useState(defaultOpen)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState('')
 
@@ -29,10 +35,10 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
     // Initialize/Update defaults when suggestions change or form opens
     useEffect(() => {
-        if (suggestedGreenhouses.length > 0 && selectedGreenhouseIds.length === 0) {
+        if (isOpen && suggestedGreenhouses.length > 0 && selectedGreenhouseIds.length === 0) {
             setSelectedGreenhouseIds(suggestedGreenhouses.map(g => g.id))
         }
-    }, [suggestedGreenhouses, isOpen])
+    }, [isOpen, selectedGreenhouseIds.length, suggestedGreenhouses])
 
     // Update estimated time when selection changes
     useEffect(() => {
@@ -164,7 +170,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
                     const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
 
-                    const { data, error: uploadError } = await supabase
+                    const { error: uploadError } = await supabase
                         .storage
                         .from('work-photos')
                         .upload(fileName, photoFile, {
@@ -186,8 +192,9 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                         const { data: publicUrlData } = supabase.storage.from('work-photos').getPublicUrl(fileName)
                         finalPhotoUrl = publicUrlData.publicUrl
                     }
-                } catch (uploadErr: any) {
-                    console.warn('Photo upload error, falling back to database storage:', uploadErr.message)
+                } catch (uploadErr: unknown) {
+                    const message = uploadErr instanceof Error ? uploadErr.message : 'Unknown upload error'
+                    console.warn('Photo upload error, falling back to database storage:', message)
                     // FALLBACK: Store as base64 in database
                     const reader = new FileReader()
                     const base64Promise = new Promise<string>((resolve) => {
@@ -241,8 +248,8 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             removePhoto()
             router.refresh()
 
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'エラーが発生しました')
         } finally {
             setIsSubmitting(false)
             setUploading(false)

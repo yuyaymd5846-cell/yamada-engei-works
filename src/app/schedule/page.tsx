@@ -1,9 +1,11 @@
 
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import dynamic from 'next/dynamic'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import styles from './gantt.module.css'
-import CycleModal from './CycleModal'
+
+const CycleModal = dynamic(() => import('./CycleModal'), { ssr: false })
 
 interface Variety {
     name: string
@@ -34,8 +36,6 @@ interface Greenhouse {
     name: string
     areaAcre: number
 }
-
-const LS_ORDER_KEY = 'gh-row-order'
 
 // Japanese national holidays (fixed dates + equinox approximations)
 function isJapaneseHoliday(d: Date): boolean {
@@ -81,6 +81,8 @@ export default function SchedulePage() {
     const [greenhouses, setGreenhouses] = useState<Greenhouse[]>([])
     const [orderedIds, setOrderedIds] = useState<string[]>([])
     const [loading, setLoading] = useState(true)
+    const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isViewPending, startViewTransition] = useTransition()
 
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -102,7 +104,12 @@ export default function SchedulePage() {
     const dragIndex = useRef<number | null>(null)
     const [dragOver, setDragOver] = useState<number | null>(null)
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async (initial = false) => {
+        if (initial) {
+            setLoading(true)
+        } else {
+            setIsRefreshing(true)
+        }
         try {
             const [cycleRes, ghRes] = await Promise.all([
                 fetch('/api/crop-cycle').then(r => r.json()),
@@ -113,21 +120,23 @@ export default function SchedulePage() {
 
             if (Array.isArray(ghRes)) {
                 setGreenhouses(ghRes)
-                // Use the order from the database directly
                 const allIds = ghRes.map((g: Greenhouse) => g.id)
                 setOrderedIds(allIds)
             } else { console.error("Greenhouses not array:", ghRes); setGreenhouses([]) }
         } catch (err) { console.error("Fetch error:", err) }
-        finally { setLoading(false) }
-    }
+        finally {
+            setLoading(false)
+            setIsRefreshing(false)
+        }
+    }, [])
 
     useEffect(() => {
-        fetchData()
+        void fetchData(true)
         const timer = setTimeout(() => {
             setLoading(prev => { if (prev) console.warn("Timeout"); return false })
         }, 10000)
         return () => clearTimeout(timer)
-    }, [])
+    }, [fetchData])
 
     // Sync vertical scroll between left panel and timeline
     const handleTimelineScroll = useCallback(() => {
@@ -148,11 +157,27 @@ export default function SchedulePage() {
         requestAnimationFrame(() => { isSyncing.current = false })
     }, [])
 
-    const orderedGreenhouses = orderedIds
-        .map(id => greenhouses.find(g => g.id === id))
-        .filter(Boolean) as Greenhouse[]
+    const orderedGreenhouses = useMemo(() => {
+        const greenhouseMap = new Map(greenhouses.map(g => [g.id, g]))
+        return orderedIds
+            .map(id => greenhouseMap.get(id))
+            .filter(Boolean) as Greenhouse[]
+    }, [greenhouses, orderedIds])
 
-    const getDaysInView = () => {
+    const cyclesByGreenhouse = useMemo(() => {
+        const map = new Map<string, CropCycle[]>()
+        cycles.forEach(cycle => {
+            const existing = map.get(cycle.greenhouseId)
+            if (existing) {
+                existing.push(cycle)
+            } else {
+                map.set(cycle.greenhouseId, [cycle])
+            }
+        })
+        return map
+    }, [cycles])
+
+    const days = useMemo(() => {
         const days: Date[] = []
         const start = new Date(currentDate); start.setHours(0, 0, 0, 0)
         if (viewMode === 'year') {
@@ -172,12 +197,10 @@ export default function SchedulePage() {
             }
         }
         return days
-    }
+    }, [currentDate, viewMode])
 
-    const days = getDaysInView()
     const DAY_WIDTH = viewMode === 'year' ? 3 : viewMode === 'month' ? 30 : 100
     const ROW_HEIGHT = 48
-    const ROW_HEIGHT_DESKTOP = 60
 
     // Helpers for cell class
     const getDayClass = (d: Date, isGrid = false) => {
@@ -227,7 +250,10 @@ export default function SchedulePage() {
             const res = await fetch('/api/crop-cycle', {
                 method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
             })
-            if (res.ok) { setIsModalOpen(false); fetchData() }
+            if (res.ok) {
+                setIsModalOpen(false)
+                await fetchData()
+            }
         } catch { alert('保存に失敗しました') }
     }
 
@@ -235,7 +261,10 @@ export default function SchedulePage() {
         if (!confirm('この作付を削除しますか？')) return
         try {
             const res = await fetch(`/api/crop-cycle?id=${id}`, { method: 'DELETE' })
-            if (res.ok) { setIsModalOpen(false); fetchData() }
+            if (res.ok) {
+                setIsModalOpen(false)
+                await fetchData()
+            }
         } catch { alert('削除に失敗しました') }
     }
 
@@ -319,11 +348,13 @@ export default function SchedulePage() {
     }
     const onTouchEnd = () => { onDragEnd() }
 
-    const todayStr = new Date().toDateString()
+    const todayStr = useMemo(() => new Date().toDateString(), [])
 
     // Calculate today's offset for the marker line
-    const todayIndex = days.findIndex(d => d.toDateString() === todayStr)
-    const todayMarkerLeft = todayIndex >= 0 ? todayIndex * DAY_WIDTH + DAY_WIDTH / 2 : -1
+    const todayMarkerLeft = useMemo(() => {
+        const todayIndex = days.findIndex(d => d.toDateString() === todayStr)
+        return todayIndex >= 0 ? todayIndex * DAY_WIDTH + DAY_WIDTH / 2 : -1
+    }, [DAY_WIDTH, days, todayStr])
 
     // Auto-scroll to today on mount / view change
     useEffect(() => {
@@ -331,7 +362,7 @@ export default function SchedulePage() {
             const panelWidth = timelinePanelRef.current.clientWidth
             timelinePanelRef.current.scrollLeft = Math.max(0, todayMarkerLeft - panelWidth / 3)
         }
-    }, [viewMode, loading])
+    }, [loading, todayMarkerLeft, viewMode])
 
     if (loading) return <div className={styles.container}>読み込み中...</div>
 
@@ -351,30 +382,43 @@ export default function SchedulePage() {
         return seps
     })() : []
 
+    const isBusy = isRefreshing || isViewPending
+
     return (
-        <div className={styles.container}>
+        <div className={styles.container} aria-busy={isBusy}>
             <header className={styles.header}>
                 <div className={styles.controls}>
-                    <button className={styles.todayBtn} onClick={() => {
-                        const d = new Date(); d.setHours(0, 0, 0, 0); setCurrentDate(d)
+                    <button className={styles.todayBtn} disabled={isBusy} onClick={() => {
+                        startViewTransition(() => {
+                            const d = new Date()
+                            d.setHours(0, 0, 0, 0)
+                            setCurrentDate(d)
+                        })
                     }}>今日</button>
                     <div className={styles.navGroup}>
-                        <button onClick={() => {
-                            const d = new Date(currentDate)
-                            d.setDate(d.getDate() - navStep)
-                            setCurrentDate(d)
+                        <button disabled={isBusy} onClick={() => {
+                            startViewTransition(() => {
+                                const d = new Date(currentDate)
+                                d.setDate(d.getDate() - navStep)
+                                setCurrentDate(d)
+                            })
                         }}>◀</button>
                         <span>{currentDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}</span>
-                        <button onClick={() => {
-                            const d = new Date(currentDate)
-                            d.setDate(d.getDate() + navStep)
-                            setCurrentDate(d)
+                        <button disabled={isBusy} onClick={() => {
+                            startViewTransition(() => {
+                                const d = new Date(currentDate)
+                                d.setDate(d.getDate() + navStep)
+                                setCurrentDate(d)
+                            })
                         }}>▶</button>
                     </div>
                     <div className={styles.viewToggle}>
-                        <button className={viewMode === 'week' ? styles.active : ''} onClick={() => setViewMode('week')}>週</button>
-                        <button className={viewMode === 'month' ? styles.active : ''} onClick={() => setViewMode('month')}>月</button>
-                        <button className={viewMode === 'year' ? styles.active : ''} onClick={() => setViewMode('year')}>年</button>
+                        <button className={viewMode === 'week' ? styles.active : ''} disabled={isBusy} onClick={() => startViewTransition(() => setViewMode('week'))}>週</button>
+                        <button className={viewMode === 'month' ? styles.active : ''} disabled={isBusy} onClick={() => startViewTransition(() => setViewMode('month'))}>月</button>
+                        <button className={viewMode === 'year' ? styles.active : ''} disabled={isBusy} onClick={() => startViewTransition(() => setViewMode('year'))}>年</button>
+                    </div>
+                    <div className={`${styles.statusBadge} ${isBusy ? styles.statusBusy : ''}`}>
+                        {isRefreshing ? 'データ更新中...' : isViewPending ? '表示を切替中...' : '最新'}
                     </div>
                 </div>
             </header>
@@ -464,7 +508,7 @@ export default function SchedulePage() {
                             {todayMarkerLeft >= 0 && (
                                 <div className={styles.todayMarker} style={{ left: todayMarkerLeft }} />
                             )}
-                            {cycles.filter(c => c.greenhouseId === gh.id).map(cycle => {
+                            {(cyclesByGreenhouse.get(gh.id) ?? []).map(cycle => {
                                 const diffDays = (a: string | null | undefined, b: string | null | undefined) => {
                                     if (!a || !b) return null
                                     const da = new Date(a), db = new Date(b)
@@ -541,13 +585,15 @@ export default function SchedulePage() {
                 </div>
             </div>
 
-            <CycleModal
-                isOpen={isModalOpen}
-                initialData={selectedCycle as any}
-                onClose={() => setIsModalOpen(false)}
-                onSave={handleSaveCycle}
-                onDelete={handleDeleteCycle}
-            />
+            {isModalOpen && (
+                <CycleModal
+                    isOpen={isModalOpen}
+                    initialData={selectedCycle}
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={handleSaveCycle}
+                    onDelete={handleDeleteCycle}
+                />
+            )}
 
             <p className={styles.hint}>
                 💡 <b>ハウス名</b>をタップで新規作成、<b>バー</b>をタップで詳細修正。<b>⠿</b>をドラッグで並び替え。
