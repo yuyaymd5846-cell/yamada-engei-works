@@ -3,6 +3,15 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+async function safeQuery<T>(label: string, query: Promise<T>, fallback: T): Promise<T> {
+    try {
+        return await query
+    } catch (error) {
+        console.warn(`Backup export skipped ${label}:`, error)
+        return fallback
+    }
+}
+
 export async function GET() {
     try {
         const [manuals, greenhouses, records, cycles, schedules, rotations, diagnoses] = await Promise.all([
@@ -12,7 +21,11 @@ export async function GET() {
             prisma.cropCycle.findMany({ orderBy: { createdAt: 'desc' } }),
             prisma.cropSchedule.findMany({ orderBy: { startDate: 'asc' } }),
             prisma.pesticideRotation.findMany({ orderBy: { createdAt: 'asc' } }),
-            prisma.buddingDiagnosis.findMany({ orderBy: { createdAt: 'desc' } }),
+            safeQuery(
+                'budding diagnoses',
+                prisma.buddingDiagnosis.findMany({ orderBy: { createdAt: 'desc' } }),
+                []
+            ),
         ])
 
         const exportedAt = new Date()
