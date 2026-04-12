@@ -32,11 +32,22 @@ export default function QuickRecordForm({
     const [photoPreview, setPhotoPreview] = useState<string | null>(null)
     const [uploading, setUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const hasInitializedSelection = useRef(false)
 
     // Initialize/Update defaults when suggestions change or form opens
     useEffect(() => {
-        if (isOpen && suggestedGreenhouses.length > 0 && selectedGreenhouseIds.length === 0) {
+        if (!isOpen) {
+            hasInitializedSelection.current = false
+            return
+        }
+
+        if (
+            !hasInitializedSelection.current &&
+            suggestedGreenhouses.length > 0 &&
+            selectedGreenhouseIds.length === 0
+        ) {
             setSelectedGreenhouseIds(suggestedGreenhouses.map(g => g.id))
+            hasInitializedSelection.current = true
         }
     }, [isOpen, selectedGreenhouseIds.length, suggestedGreenhouses])
 
@@ -61,6 +72,7 @@ export default function QuickRecordForm({
     }, [selectedGreenhouseIds, defaultTime10a, suggestedGreenhouses, workName])
 
     const toggleSelection = (id: string) => {
+        hasInitializedSelection.current = true
         setSelectedGreenhouseIds(prev =>
             prev.includes(id)
                 ? prev.filter(p => p !== id)
@@ -69,6 +81,7 @@ export default function QuickRecordForm({
     }
 
     const toggleSelectAll = () => {
+        hasInitializedSelection.current = true
         if (selectedGreenhouseIds.length === suggestedGreenhouses.length) {
             setSelectedGreenhouseIds([])
         } else {
