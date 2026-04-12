@@ -27,13 +27,24 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     const [photoPreview, setPhotoPreview] = useState<string | null>(null)
     const [uploading, setUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const hasInitializedSelection = useRef(false)
 
     // Initialize/Update defaults when suggestions change or form opens
     useEffect(() => {
-        if (suggestedGreenhouses.length > 0 && selectedGreenhouseIds.length === 0) {
-            setSelectedGreenhouseIds(suggestedGreenhouses.map(g => g.id))
+        if (!isOpen) {
+            hasInitializedSelection.current = false
+            return
         }
-    }, [suggestedGreenhouses, isOpen])
+
+        if (
+            !hasInitializedSelection.current &&
+            suggestedGreenhouses.length > 0 &&
+            selectedGreenhouseIds.length === 0
+        ) {
+            setSelectedGreenhouseIds(suggestedGreenhouses.map(g => g.id))
+            hasInitializedSelection.current = true
+        }
+    }, [suggestedGreenhouses, isOpen, selectedGreenhouseIds.length])
 
     // Update estimated time when selection changes
     useEffect(() => {
@@ -56,6 +67,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     }, [selectedGreenhouseIds, defaultTime10a, suggestedGreenhouses, workName])
 
     const toggleSelection = (id: string) => {
+        hasInitializedSelection.current = true
         setSelectedGreenhouseIds(prev =>
             prev.includes(id)
                 ? prev.filter(p => p !== id)
@@ -64,6 +76,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
     }
 
     const toggleSelectAll = () => {
+        hasInitializedSelection.current = true
         if (selectedGreenhouseIds.length === suggestedGreenhouses.length) {
             setSelectedGreenhouseIds([])
         } else {
@@ -165,7 +178,7 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
 
                     const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
 
-                    const { data, error: uploadError } = await supabase
+                    const { error: uploadError } = await supabase
                         .storage
                         .from('work-photos')
                         .upload(fileName, photoFile, {
@@ -187,8 +200,9 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
                         const { data: publicUrlData } = supabase.storage.from('work-photos').getPublicUrl(fileName)
                         finalPhotoUrl = publicUrlData.publicUrl
                     }
-                } catch (uploadErr: any) {
-                    console.warn('Photo upload error, falling back to database storage:', uploadErr.message)
+                } catch (uploadErr: unknown) {
+                    const uploadErrorMessage = uploadErr instanceof Error ? uploadErr.message : 'Unknown upload error'
+                    console.warn('Photo upload error, falling back to database storage:', uploadErrorMessage)
                     // FALLBACK: Store as base64 in database
                     const reader = new FileReader()
                     const base64Promise = new Promise<string>((resolve) => {
@@ -244,8 +258,8 @@ export default function QuickRecordForm({ workName, suggestedGreenhouses, defaul
             setTimeout(() => setSuccessMsg(''), 3000)
             router.refresh()
 
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'エラーが発生しました')
         } finally {
             setIsSubmitting(false)
             setUploading(false)
